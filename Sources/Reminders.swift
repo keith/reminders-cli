@@ -46,8 +46,10 @@ final class Reminders {
             do {
                 reminder.completed = true
                 try Store.saveReminder(reminder, commit: true)
+                print("Completed '\(reminder.title)'")
             } catch let error {
                 print("Failed to save reminder with error: \(error)")
+                exit(1)
             }
 
             dispatch_semaphore_signal(semaphore)
@@ -64,8 +66,10 @@ final class Reminders {
 
         do {
             try Store.saveReminder(reminder, commit: true)
+            print("Added '\(reminder.title)' to '\(calendar.title)'")
         } catch let error {
             print("Failed to save reminder with error: \(error)")
+            exit(1)
         }
     }
 

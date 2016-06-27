@@ -24,6 +24,7 @@ $ reminders show Soon
 
 ```
 $ reminders complete Soon 0
+Completed 'Write README'
 $ reminders show Soon
 0 Ship reminders-cli
 ```

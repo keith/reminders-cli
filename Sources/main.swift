@@ -24,7 +24,7 @@ reminders.requestAccess { granted in
     if granted {
         createCLI().run()
     } else {
-        print("Need to grant reminders access")
+        print("You need to grant reminders access")
         exit(1)
     }
 }

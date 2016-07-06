@@ -46,6 +46,10 @@ $ reminders show Soon
 $ brew install keith/formulae/reminders-cli
 ```
 
+**NOTE** You must have Xcode 7.3.1 installed at
+`/Applications/Xcode.app` for this to work correctly. If this isn't the
+case you should build manually as described below.
+
 #### Manually
 
 Download the latest release from

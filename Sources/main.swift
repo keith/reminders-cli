@@ -14,7 +14,7 @@ private func createCLI() -> Group {
             reminders.complete(itemAtIndex: index, onListNamed: listName)
         }
         $0.command("add") { (listName: String, parser: ArgumentParser) in
-            let string = parser.remainder.joinWithSeparator(" ")
+            let string = parser.remainder.joined(separator: " ")
             reminders.addReminder(string: string, toListNamed: listName)
         }
     }
@@ -29,4 +29,4 @@ reminders.requestAccess { granted in
     }
 }
 
-NSApplication.sharedApplication().run()
+NSApplication.shared().run()

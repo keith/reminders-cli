@@ -23,8 +23,8 @@ final class Reminders {
         let semaphore = DispatchSemaphore(value: 0)
 
         self.reminders(onCalendar: calendar) { reminders in
-            for (i, reminder) in reminders.enumerated() {
-                print(i, String(reminder.title))
+            for (_, reminder) in reminders.enumerated() {
+                print(String(reminder.title))
             }
 
             semaphore.signal()
@@ -82,7 +82,6 @@ final class Reminders {
         Store.fetchReminders(matching: predicate) { reminders in
             let reminders = reminders?
                 .filter { !$0.isCompleted }
-                .sorted { ($0.creationDate ?? Date.distantPast) < ($1.creationDate ?? Date.distantPast) }
             completion(reminders ?? [])
         }
     }

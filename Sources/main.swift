@@ -29,8 +29,4 @@ reminders.requestAccess { granted in
     }
 }
 
-private func isTestRun() -> Bool {
-    return NSClassFromString("XCTestCase") != nil
-}
-
 NSApplication.shared.run()

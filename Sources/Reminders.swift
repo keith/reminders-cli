@@ -24,7 +24,7 @@ final class Reminders {
 
         self.reminders(onCalendar: calendar) { reminders in
             for (i, reminder) in reminders.enumerated() {
-                print(i, reminder.title)
+                print(i, String(reminder.title))
             }
 
             semaphore.signal()
@@ -46,7 +46,7 @@ final class Reminders {
             do {
                 reminder.isCompleted = true
                 try Store.save(reminder, commit: true)
-                print("Completed '\(reminder.title)'")
+                print("Completed '\(reminder.title!)'")
             } catch let error {
                 print("Failed to save reminder with error: \(error)")
                 exit(1)
@@ -66,7 +66,7 @@ final class Reminders {
 
         do {
             try Store.save(reminder, commit: true)
-            print("Added '\(reminder.title)' to '\(calendar.title)'")
+            print("Added '\(reminder.title!)' to '\(calendar.title)'")
         } catch let error {
             print("Failed to save reminder with error: \(error)")
             exit(1)

@@ -23,8 +23,8 @@ final class Reminders {
         let semaphore = DispatchSemaphore(value: 0)
 
         self.reminders(onCalendar: calendar) { reminders in
-            for (_, reminder) in reminders.enumerated() {
-                print(String(reminder.title))
+            for (i, reminder) in reminders.enumerated() {
+                print(i, String(reminder.title))
             }
 
             semaphore.signal()

@@ -67,7 +67,6 @@ Install [swiftenv](https://github.com/kylef/swiftenv/)
 
 ```
 $ cd reminders-cli
-$ swiftenv install
 $ swift build --configuration release
 $ cp .build/release/reminders /usr/local/bin/reminders
 ```

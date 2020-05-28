@@ -29,4 +29,4 @@ reminders.requestAccess { granted in
     }
 }
 
-NSApplication.shared().run()
+NSApplication.shared.run()

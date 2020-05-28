@@ -4,19 +4,16 @@ PREFIX?=/usr/local/bin
 ARCHIVE=$(EXECUTABLE).tar.gz
 
 .PHONY: clean build release package install uninstall
-SRC=$(wildcard Sources/*.swift)
 
 clean:
 	rm -f $(EXECUTABLE) $(ARCHIVE) _reminders
-	swift build --clean
+	swift package clean
 
-build: $(SRC)
+build:
 	swift build
 
-release: clean
-	swift build \
-		--configuration release \
-		-Xswiftc -static-stdlib
+release:
+	swift build --configuration release
 
 package: release
 	tar -pvczf $(ARCHIVE) -C zsh _reminders -C ../$(RELEASE_BUILD) $(EXECUTABLE)

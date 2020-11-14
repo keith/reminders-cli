@@ -1,4 +1,5 @@
 import EventKit
+import Foundation
 
 private let Store = EKEventStore()
 private let dateFormatter = RelativeDateTimeFormatter()
@@ -73,11 +74,12 @@ public final class Reminders {
         semaphore.wait()
     }
 
-    func addReminder(string: String, toListNamed name: String) {
+    func addReminder(string: String, toListNamed name: String, dueDate: DateComponents?) {
         let calendar = self.calendar(withName: name)
         let reminder = EKReminder(eventStore: Store)
         reminder.calendar = calendar
         reminder.title = string
+        reminder.dueDateComponents = dueDate
 
         do {
             try Store.save(reminder, commit: true)

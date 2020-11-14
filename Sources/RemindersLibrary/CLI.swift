@@ -1,4 +1,5 @@
 import ArgumentParser
+import Foundation
 
 private let reminders = Reminders()
 
@@ -36,8 +37,13 @@ private struct Add: ParsableCommand {
         help: "The reminder contents")
     var reminder: String
 
+    @Option(
+        name: .shortAndLong,
+        help: "The date the reminder is due")
+    var dueDate: DateComponents?
+
     func run() {
-        reminders.addReminder(string: self.reminder, toListNamed: self.listName)
+        reminders.addReminder(string: self.reminder, toListNamed: self.listName, dueDate: self.dueDate)
     }
 }
 

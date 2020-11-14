@@ -24,7 +24,8 @@ final class NaturalLanguageTests: XCTestCase {
     func testTomorrowAtTime() throws {
         let components = try XCTUnwrap(DateComponents(argument: "tomorrow 9pm"))
         let tomorrow = try XCTUnwrap(Calendar.current.date(byAdding: .day, value: 1, to: Date()))
-        let tomorrowAt9 = try XCTUnwrap(Calendar.current.date(bySetting: .hour, value: 21, of: tomorrow))
+        let tomorrowAt9 = try XCTUnwrap(
+            Calendar.current.date(bySettingHour: 21, minute: 0, second: 0, of: tomorrow))
         let expectedComponents = Calendar.current.dateComponents(calendarComponents(), from: tomorrowAt9)
 
         XCTAssertEqual(components, expectedComponents)

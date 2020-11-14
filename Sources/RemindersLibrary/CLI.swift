@@ -71,7 +71,7 @@ private struct Complete: ParsableCommand {
 public struct CLI: ParsableCommand {
     public static let configuration = CommandConfiguration(
         commandName: "reminders",
-        abstract: "A utility for performing maths.",
+        abstract: "Interact with macOS Reminders from the command line",
         subcommands: [
             Add.self,
             Complete.self,

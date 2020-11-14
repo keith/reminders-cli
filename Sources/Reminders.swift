@@ -3,12 +3,16 @@ import EventKit
 private let Store = EKEventStore()
 
 final class Reminders {
-    func requestAccess(completion: @escaping (_ granted: Bool) -> Void) {
+    static func requestAccess() -> Bool {
+        let semaphore = DispatchSemaphore(value: 0)
+        var grantedAccess = false
         Store.requestAccess(to: .reminder) { granted, _ in
-            DispatchQueue.main.async {
-                completion(granted)
-            }
+            grantedAccess = granted
+            semaphore.signal()
         }
+
+        semaphore.wait()
+        return grantedAccess
     }
 
     func showLists() {

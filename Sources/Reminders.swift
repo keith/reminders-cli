@@ -67,7 +67,6 @@ final class Reminders {
         let reminder = EKReminder(eventStore: Store)
         reminder.calendar = calendar
         reminder.title = string
-        // reminder.dueDateComponents
 
         do {
             try Store.save(reminder, commit: true)

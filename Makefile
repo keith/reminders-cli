@@ -4,10 +4,6 @@ ARCHIVE=$(EXECUTABLE).tar.gz
 
 .PHONY: clean build-release package
 
-clean:
-	rm -f $(EXECUTABLE) $(ARCHIVE) _reminders
-	swift package clean
-
 build-release:
 	swift build --configuration release -Xswiftc -warnings-as-errors
 
@@ -18,3 +14,7 @@ package: build-release
 	@shasum -a 256 $(ARCHIVE)
 	@shasum -a 256 $(EXECUTABLE)
 	rm $(EXECUTABLE) _reminders
+
+clean:
+	rm -f $(EXECUTABLE) $(ARCHIVE) _reminders
+	swift package clean

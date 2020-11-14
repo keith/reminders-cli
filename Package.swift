@@ -12,8 +12,17 @@ let package = Package(
     targets: [
         .target(
             name: "reminders",
+            dependencies: ["RemindersLibrary"]
+        ),
+        .target(
+            name: "RemindersLibrary",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-            ]),
+            ]
+        ),
+        .testTarget(
+            name: "RemindersTests",
+            dependencies: ["RemindersLibrary"]
+        ),
     ]
 )

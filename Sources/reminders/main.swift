@@ -1,4 +1,5 @@
 import AppKit
+import RemindersLibrary
 
 if Reminders.requestAccess() {
     CLI.main()

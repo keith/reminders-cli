@@ -13,8 +13,8 @@ private func format(_ reminder: EKReminder, at index: Int) -> String {
     return "\(index): \(reminder.title ?? "<unknown>")\(dateString)"
 }
 
-final class Reminders {
-    static func requestAccess() -> Bool {
+public final class Reminders {
+    public static func requestAccess() -> Bool {
         let semaphore = DispatchSemaphore(value: 0)
         var grantedAccess = false
         Store.requestAccess(to: .reminder) { granted, _ in

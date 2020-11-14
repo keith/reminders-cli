@@ -1,17 +1,17 @@
 name: Swift
 
-on:
+"on":
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
 jobs:
   build:
-
     runs-on: macos-latest
-
     steps:
-    - uses: actions/checkout@v2
-    - name: Build
-      run: swift build -Xswiftc -warnings-as-errors
+      - uses: actions/checkout@v2
+      - name: Build
+        run: swift build -Xswiftc -warnings-as-errors
+      - name: Test
+        run: swift test -Xswiftc -warnings-as-errors

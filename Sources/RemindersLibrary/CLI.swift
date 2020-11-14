@@ -58,8 +58,8 @@ private struct Complete: ParsableCommand {
     }
 }
 
-struct CLI: ParsableCommand {
-    static let configuration = CommandConfiguration(
+public struct CLI: ParsableCommand {
+    public static let configuration = CommandConfiguration(
         commandName: "reminders",
         abstract: "A utility for performing maths.",
         subcommands: [
@@ -69,4 +69,6 @@ struct CLI: ParsableCommand {
             ShowLists.self,
         ]
     )
+
+    public init() {}
 }

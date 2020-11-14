@@ -1,4 +1,4 @@
-import AppKit
+import Darwin
 import RemindersLibrary
 
 if Reminders.requestAccess() {

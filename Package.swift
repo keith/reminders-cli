@@ -14,7 +14,6 @@ let package = Package(
             name: "reminders",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-            ],
-            path: "Sources"),
+            ]),
     ]
 )

@@ -34,8 +34,9 @@ private struct Add: ParsableCommand {
     var listName: String
 
     @Argument(
+        parsing: .remaining,
         help: "The reminder contents")
-    var reminder: String
+    var reminder: [String]
 
     @Option(
         name: .shortAndLong,
@@ -43,7 +44,10 @@ private struct Add: ParsableCommand {
     var dueDate: DateComponents?
 
     func run() {
-        reminders.addReminder(string: self.reminder, toListNamed: self.listName, dueDate: self.dueDate)
+        reminders.addReminder(
+            string: self.reminder.joined(separator: " "),
+            toListNamed: self.listName,
+            dueDate: self.dueDate)
     }
 }
 

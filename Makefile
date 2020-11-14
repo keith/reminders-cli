@@ -10,10 +10,11 @@ clean:
 	swift package clean
 
 release:
-	swift build --configuration release
+	swift build --configuration release -Xswiftc -warnings-as-errors
 
 package: release
-	tar -pvczf $(ARCHIVE) -C zsh _reminders -C ../$(RELEASE_BUILD) $(EXECUTABLE)
+	$(RELEASE_BUILD)/$(EXECUTABLE) --generate-completion-script zsh > _reminders
+	tar -pvczf $(ARCHIVE) _reminders -C $(RELEASE_BUILD) $(EXECUTABLE)
 	tar -zxvf $(ARCHIVE)
 	@shasum -a 256 $(ARCHIVE)
 	@shasum -a 256 $(EXECUTABLE)

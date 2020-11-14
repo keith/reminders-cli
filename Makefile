@@ -3,14 +3,11 @@ EXECUTABLE=reminders
 PREFIX?=/usr/local/bin
 ARCHIVE=$(EXECUTABLE).tar.gz
 
-.PHONY: clean build release package install uninstall
+.PHONY: clean release package install uninstall
 
 clean:
 	rm -f $(EXECUTABLE) $(ARCHIVE) _reminders
 	swift package clean
-
-build:
-	swift build
 
 release:
 	swift build --configuration release

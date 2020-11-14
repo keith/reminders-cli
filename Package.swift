@@ -3,6 +3,9 @@ import PackageDescription
 
 let package = Package(
     name: "reminders",
+    platforms: [
+        .macOS(.v10_15)
+    ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", .upToNextMinor(from: "0.3.0")),
     ],

@@ -32,10 +32,12 @@ $ reminders show Soon
 #### Add a reminder to a list
 
 ```
-$ reminders add Soon Go to sleep
+$ reminders add Soon Contribute to open source
+$ reminders add Soon Go to the grocery store --due-date "tomorrow 9am"
 $ reminders show Soon
-0 Ship reminders-cli
-1 Go to sleep
+0: Ship reminders-cli
+1: Contribute to open source
+2: Go to the grocery store (in 10 hours)
 ```
 
 ## Installation:
@@ -46,11 +48,7 @@ $ reminders show Soon
 $ brew install keith/formulae/reminders-cli
 ```
 
-**NOTE** You must have Xcode 7.3.1 installed at
-`/Applications/Xcode.app` for this to work correctly. If this isn't the
-case you should build manually as described below.
-
-#### Manually
+#### From GitHub releases
 
 Download the latest release from
 [here](https://github.com/keith/reminders-cli/releases)
@@ -63,10 +61,10 @@ $ rm reminders.tar.gz
 
 #### Building manually
 
-Install [swiftenv](https://github.com/kylef/swiftenv/)
+This requires a recent Xcode installation.
 
 ```
 $ cd reminders-cli
-$ swift build --configuration release
+$ make build-release
 $ cp .build/release/reminders /usr/local/bin/reminders
 ```

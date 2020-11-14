@@ -1,6 +1,17 @@
 import EventKit
 
 private let Store = EKEventStore()
+private let dateFormatter = RelativeDateTimeFormatter()
+private func formattedDueDate(from reminder: EKReminder) -> String? {
+    return reminder.dueDateComponents?.date.map {
+        dateFormatter.localizedString(for: $0, relativeTo: Date())
+    }
+}
+
+private func format(_ reminder: EKReminder, at index: Int) -> String {
+    let dateString = formattedDueDate(from: reminder).map { " (\($0))" } ?? ""
+    return "\(index): \(reminder.title ?? "<unknown>")\(dateString)"
+}
 
 final class Reminders {
     static func requestAccess() -> Bool {
@@ -28,7 +39,7 @@ final class Reminders {
 
         self.reminders(onCalendar: calendar) { reminders in
             for (i, reminder) in reminders.enumerated() {
-                print(i, String(reminder.title))
+                print(format(reminder, at: i))
             }
 
             semaphore.signal()

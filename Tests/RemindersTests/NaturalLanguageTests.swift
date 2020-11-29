@@ -47,12 +47,14 @@ final class NaturalLanguageTests: XCTestCase {
         XCTAssertTrue(Calendar.current.isDateInWeekend(date))
     }
 
-    // This unfortunately doesn't work
-    func disabled_testNextWeekend() throws {
-        let components = try XCTUnwrap(DateComponents(argument: "next weekend"))
-        let date = try XCTUnwrap(Calendar.current.date(from: components))
+    // FB8921206
+    func testNextWeekend() throws {
+        // TODO: This should be inverted but DataDetector doesn't support it right now
+        XCTAssertNil(DateComponents(argument: "next weekend"))
+        // let components = try XCTUnwrap(DateComponents(argument: "next weekend"))
+        // let date = try XCTUnwrap(Calendar.current.date(from: components))
 
-        XCTAssertTrue(Calendar.current.isDateInWeekend(date))
+        // XCTAssertTrue(Calendar.current.isDateInWeekend(date))
     }
 
     func testSpecificDays() throws {

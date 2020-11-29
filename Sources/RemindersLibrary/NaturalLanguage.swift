@@ -13,7 +13,6 @@ let timeComponents: Set<Calendar.Component> = [
 ]
 
 func calendarComponents(except removedComponents: Set<Calendar.Component> = []) -> Set<Calendar.Component> {
-
     return allComponents.subtracting(removedComponents)
 }
 

@@ -1,6 +1,7 @@
 import ArgumentParser
 import Foundation
 
+private let mdscanner = MDScanner();
 private let reminders = Reminders()
 
 private struct ShowLists: ParsableCommand {
@@ -81,6 +82,15 @@ private struct newList: ParsableCommand {
     }
 }
 
+private struct scan: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Scan for markdown files")
+
+    func run() {
+        mdscanner.scan();
+    }
+}
+
 public struct CLI: ParsableCommand {
     public static let configuration = CommandConfiguration(
         commandName: "reminders",
@@ -91,6 +101,7 @@ public struct CLI: ParsableCommand {
             Show.self,
             ShowLists.self,
             newList.self,
+            scan.self
         ]
     )
 

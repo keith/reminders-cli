@@ -51,18 +51,6 @@ private struct Add: ParsableCommand {
     }
 }
 
-private struct newList: ParsableCommand {
-    static let configuration = CommandConfiguration(
-        abstract: "Create a calendar")
-    @Argument(
-        help: "The name of the calendar to create")
-    var calendarName: String
-
-    func run() {
-        reminders.newList(calendarName: calendarName)
-    }
-
-}
 
 private struct Complete: ParsableCommand {
     static let configuration = CommandConfiguration(
@@ -78,6 +66,18 @@ private struct Complete: ParsableCommand {
 
     func run() {
         reminders.complete(itemAtIndex: self.index, onListNamed: self.listName)
+    }
+}
+
+private struct newList: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Create a calendar")
+    @Argument(
+        help: "The name of the calendar to create")
+    var calendarName: String
+
+    func run() {
+        reminders.newList(calendarName: calendarName)
     }
 }
 

@@ -40,6 +40,13 @@ $ reminders show Soon
 2: Go to the grocery store (in 10 hours)
 ```
 
+#### Create a new reminders list
+
+```
+$ reminders new-list Grocery
+Created reminders list 'Grocery'!
+```
+
 ## Installation:
 
 #### With [Homebrew](http://brew.sh/)

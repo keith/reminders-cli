@@ -80,12 +80,44 @@ public final class Reminders {
         reminder.calendar = calendar
         reminder.title = string
         reminder.dueDateComponents = dueDate
-
+        
         do {
             try Store.save(reminder, commit: true)
             print("Added '\(reminder.title!)' to '\(calendar.title)'")
         } catch let error {
             print("Failed to save reminder with error: \(error)")
+            exit(1)
+        }
+    }
+
+    // TODO add color setting ability
+    func newList (calendarName: String) {
+        if (self.getCalendars().find(where: { $0.title.lowercased() == calendarName.lowercased() }) != nil) {
+          print("Reminders list '\(calendarName)' already exists");
+          exit(1);
+        }
+        let calendar = EKCalendar(for: .reminder, eventStore: Store);
+        calendar.title = calendarName;
+        // Code adapted from https://stackoverflow.com/questions/8260752/how-do-i-create-a-new-ekcalendar-on-ios-device
+        // Find icloud source
+        var localSource:EKSource?;
+        for source in Store.sources {    
+            if (source.sourceType == EKSourceType.calDAV)
+            {
+                localSource = source;
+                break;
+            }
+        }
+        if (localSource == nil) {
+            print("Could not find icloud source");
+            exit(1);
+        }
+        calendar.source = localSource;
+        do {
+            try Store.saveCalendar(calendar, commit: true)
+            print("Created reminders list '\(calendarName)'!")
+        } catch let error {
+            print("Failed create reminders list with error: \(error)")
             exit(1)
         }
     }

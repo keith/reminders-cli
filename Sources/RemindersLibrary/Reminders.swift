@@ -30,7 +30,7 @@ public final class Reminders {
     func showLists() {
         let calendars = self.getCalendars()
         for calendar in calendars {
-            print(calendar.title)
+            print(calendar.title);
         }
     }
 
@@ -47,6 +47,22 @@ public final class Reminders {
         }
 
         semaphore.wait()
+    }
+
+    func returnListItems(withName name: String) -> [EKReminder] {
+        let calendar = self.calendar(withName: name)
+        var remindersArray: [EKReminder] = [];
+        let semaphore = DispatchSemaphore(value: 0)
+        
+        self.allReminders(onCalendar: calendar) { reminders in
+            for (i, reminder) in reminders.enumerated() {
+                remindersArray.append(reminder);
+            }
+            semaphore.signal()
+
+        }
+        semaphore.wait()
+        return remindersArray;        
     }
 
     func complete(itemAtIndex index: Int, onListNamed name: String) {
@@ -122,6 +138,10 @@ public final class Reminders {
         }
     }
 
+    func hasList (calendarName:String) -> Bool {
+      return self.getCalendars().find(where: { $0.title.lowercased() == calendarName.lowercased() }) != nil;
+    }
+
     // MARK: - Private functions
 
     private func reminders(onCalendar calendar: EKCalendar,
@@ -131,6 +151,17 @@ public final class Reminders {
         Store.fetchReminders(matching: predicate) { reminders in
             let reminders = reminders?
                 .filter { !$0.isCompleted }
+            completion(reminders ?? [])
+        }
+    }
+
+
+    // Includes completed reminders
+    private func allReminders(onCalendar calendar: EKCalendar,
+                                      completion: @escaping (_ reminders: [EKReminder]) -> Void)
+    {
+        let predicate = Store.predicateForReminders(in: [calendar])
+        Store.fetchReminders(matching: predicate) { reminders in
             completion(reminders ?? [])
         }
     }

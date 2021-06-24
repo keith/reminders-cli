@@ -1,0 +1,34 @@
+// .vscode/launch.json
+{
+   "version": "0.2.0",
+   "configurations": [
+       // Running executables
+       {
+           "type": "lldb",
+           "request": "launch",
+           "name": "Run your Executable",
+           "program": "${workspaceFolder}/.build/debug/reminders",
+           "args": ["scan"],
+           "cwd": "${workspaceFolder}",
+           "preLaunchTask": "swift-build"
+       },
+       // Running unit tests
+       {
+           "type": "lldb",
+           "request": "launch",
+           "name": "Debug tests on macOS",
+           "program": "<path to xctest executable>", //For example /Applications/Xcode.app/Contents/Developer/usr/bin/xctest
+           "args": [
+               "${workspaceFolder}/.build/debug/<xctest bundle name>.xctest"
+           ],
+           "preLaunchTask": "swift-build-tests"
+       },
+       {
+           "type": "lldb",
+           "request": "launch",
+           "name": "Debug tests on Linux",
+           "program": "./.build/x86_64-unknown-linux/debug/YourPackageTests.xctest",
+           "preLaunchTask": "swift-build-tests"
+       }
+   ]
+}

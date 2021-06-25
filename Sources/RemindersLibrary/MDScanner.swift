@@ -42,7 +42,6 @@ public final class MDScanner {
             // Name of file without .scan.md
             let name = resourceValues.name!.dropLast(8);
             let lastmodified = resourceValues.contentModificationDate;
-            print(name);
             // If list does not exist, create it
             if !reminders2.hasList(calendarName: String(name)) {
                reminders2.newList(calendarName: String(name));
@@ -70,48 +69,26 @@ public final class MDScanner {
                         print("Updated '\(rem!.title!)'")
                      }
                   } else {
-                     print(todoName);
+                     // Determine whether to complete or uncomplete item (or do nothing)
+                     let isComplete = rem!.isCompleted;
+                     // If no difference
+                     if (isComplete == (todo.prefix(5) == "- [x]")) {
+                        continue;
+                     }
                      // Stores length of line to overwrite
-                     var lenOfLine = 0;
-                     var pos = arrayOfStrings[0..<arrayOfStrings.firstIndex(of: todo)!].reduce(0, {x, y in
+                     let pos = arrayOfStrings[0..<arrayOfStrings.firstIndex(of: todo)!].reduce(0, {x, y in
                         var buf:[UInt8] = Array(y.utf8);
                         buf.append(contentsOf: [10]);
-                        if (y == todos[1]) {
-                           lenOfLine = buf.count;
-                        }
                         return x + buf.count;
                      });
-                     // Account for special character
-                     pos -= 1;
-
+                     
                      let path:FilePath = FilePath.init(url.path);
                      let fd = try FileDescriptor.open(path, .readWrite);
-                     try fd.seek(offset: Int64.init(pos), from: .start);
+                     try fd.seek(offset: Int64.init(pos+3), from: .start);
                      try fd.closeAfter {
-                        print("writing to \(url.path)");
-                        print(pos);
-                        let rawBuf = UnsafeMutableRawBufferPointer.allocate(byteCount: 10000, alignment: 1)
-                        // while true {
-                        var result = try fd.read(fromAbsoluteOffset: Int64.init(pos), into: rawBuf);
-                        
-                        var s = "";
-                        for it in rawBuf.makeIterator() {
-                           if (UInt8(it) == 10) {
-                              break;
-                           }
-                           s += String(UnicodeScalar(UInt8(it))); 
-                           result-=1;
-                           if (result == 0) {
-                              break;
-                           }
-                        }
-                        print(s);
-                        // }
-                        // print(String.init(decoding: rawBuf, as:UInt8));
-                        _ = try fd.writeAll(toAbsoluteOffset: Int64.init(pos - lenOfLine + 4), "x".utf8);
-                        // _ = try fd.writeAll("test".utf8);
+                        let char = isComplete ? "x" : " ";
+                        _ = try fd.writeAll(char.utf8);
                      }
-                     print (fd);
                   }
                }
                // print(todoName);

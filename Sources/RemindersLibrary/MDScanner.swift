@@ -70,11 +70,15 @@ public final class MDScanner {
                         print("Updated '\(rem!.title!)'")
                      }
                   } else {
-                     // TODO update md file
                      print(todoName);
-                     var pos = arrayOfStrings[0..<arrayOfStrings.firstIndex(of: todos[1])!].reduce(0, {x, y in
+                     // Stores length of line to overwrite
+                     var lenOfLine = 0;
+                     var pos = arrayOfStrings[0..<arrayOfStrings.firstIndex(of: todo)!].reduce(0, {x, y in
                         var buf:[UInt8] = Array(y.utf8);
                         buf.append(contentsOf: [10]);
+                        if (y == todos[1]) {
+                           lenOfLine = buf.count;
+                        }
                         return x + buf.count;
                      });
                      // Account for special character
@@ -87,24 +91,25 @@ public final class MDScanner {
                         print("writing to \(url.path)");
                         print(pos);
                         let rawBuf = UnsafeMutableRawBufferPointer.allocate(byteCount: 10000, alignment: 1)
-                        while true {
-                           var result = try fd.read(into: rawBuf);
+                        // while true {
+                        var result = try fd.read(fromAbsoluteOffset: Int64.init(pos), into: rawBuf);
+                        
+                        var s = "";
+                        for it in rawBuf.makeIterator() {
+                           if (UInt8(it) == 10) {
+                              break;
+                           }
+                           s += String(UnicodeScalar(UInt8(it))); 
+                           result-=1;
                            if (result == 0) {
-                              break
+                              break;
                            }
-                           var s = "";
-                           for it in rawBuf.makeIterator() {
-                              s += String(UnicodeScalar(UInt8(it))); 
-                              result-=1;
-                              if (result == 0) {
-                                 break;
-                              }
-                           }
-                           print(s);
                         }
+                        print(s);
+                        // }
                         // print(String.init(decoding: rawBuf, as:UInt8));
-                        _ = try fd.writeAll("test".utf8);
-                        exit(1)
+                        _ = try fd.writeAll(toAbsoluteOffset: Int64.init(pos - lenOfLine + 4), "x".utf8);
+                        // _ = try fd.writeAll("test".utf8);
                      }
                      print (fd);
                   }

@@ -1,6 +1,6 @@
 import Foundation
 import EventKit
-import System
+import SystemPackage
 
 private let Store = EKEventStore();
 
@@ -72,23 +72,48 @@ public final class MDScanner {
                   } else {
                      // TODO update md file
                      print(todoName);
-                     let pos = arrayOfStrings[0..<arrayOfStrings.firstIndex(of: todo)!].reduce(0, {x, y in
-                        // print(y);
-                       let buf:[UInt8] = Array(y.utf8);
-                       return x + buf.count;
+                     var pos = arrayOfStrings[0..<arrayOfStrings.firstIndex(of: todos[1])!].reduce(0, {x, y in
+                        var buf:[UInt8] = Array(y.utf8);
+                        buf.append(contentsOf: [10]);
+                        return x + buf.count;
                      });
+                     // Account for special character
+                     pos -= 1;
 
-                     let blah:FilePath = FilePath.init(url)!;
-                     open()
-                     // let fd = open(path: blah)
-                     
-                     // print(arrayOfStrings);
+                     let path:FilePath = FilePath.init(url.path);
+                     let fd = try FileDescriptor.open(path, .readWrite);
+                     try fd.seek(offset: Int64.init(pos), from: .start);
+                     try fd.closeAfter {
+                        print("writing to \(url.path)");
+                        print(pos);
+                        let rawBuf = UnsafeMutableRawBufferPointer.allocate(byteCount: 10000, alignment: 1)
+                        while true {
+                           var result = try fd.read(into: rawBuf);
+                           if (result == 0) {
+                              break
+                           }
+                           var s = "";
+                           for it in rawBuf.makeIterator() {
+                              s += String(UnicodeScalar(UInt8(it))); 
+                              result-=1;
+                              if (result == 0) {
+                                 break;
+                              }
+                           }
+                           print(s);
+                        }
+                        // print(String.init(decoding: rawBuf, as:UInt8));
+                        _ = try fd.writeAll("test".utf8);
+                        exit(1)
+                     }
+                     print (fd);
                   }
                }
                // print(todoName);
             }
             // print (test);
-         } catch {
+         } catch let error {
+            print(error);
             print("error");
             exit(1);
          }   

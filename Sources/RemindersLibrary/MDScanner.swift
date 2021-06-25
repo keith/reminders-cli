@@ -7,7 +7,16 @@ private let Store = EKEventStore();
 let reminders2 = Reminders();
 
 public final class MDScanner {
+
    public func scan() {
+      NotificationCenter.default.addObserver(self, selector: #selector(reloadModelData(notification:)), name: Notification.Name.EKEventStoreChanged, object: nil)
+      RunLoop.current.run();
+   }
+   @objc private func reloadModelData(notification: NSNotification) {
+    print("method called \(notification)")
+   }
+
+   public func scan2t() {
       let url = URL.init(fileURLWithPath: "/Users/pascalvonfintel/Documents/Personal Writings");
       // let url = Bundle.main.bundleURL;
       print(url);

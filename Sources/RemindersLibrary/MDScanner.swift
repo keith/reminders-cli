@@ -6,20 +6,46 @@ private let Store = EKEventStore();
 
 let reminders2 = Reminders();
 
+struct URLUpdates {
+   var path:String;
+   var updatedAt:Date
+}
+
 public final class MDScanner {
+
+   var urls:[URLUpdates] = [];
 
    public func scan() {
       NotificationCenter.default.addObserver(self, selector: #selector(reloadModelData(notification:)), name: Notification.Name.EKEventStoreChanged, object: nil)
+      let timer = Timer(timeInterval: 1.0, target: self, selector: #selector(fire), userInfo: nil, repeats: true);
+      RunLoop.current.add(timer, forMode: .common)
       RunLoop.current.run();
    }
    @objc private func reloadModelData(notification: NSNotification) {
-    print("method called \(notification)")
+      print("Recieved notification")
+      fire(notif: true);
    }
 
-   public func scan2t() {
+   @objc private func fire(notif:Bool = false) {
+      // Check if files have updated
+      // Keep track of updatedAtDates
+      let ret = scan2(notif: notif);
+      urls = [];
+      do {
+         for url in ret {
+            let resourceValues = try url.resourceValues(forKeys: [.pathKey, .contentModificationDateKey]);
+            urls.append(URLUpdates.init(path: resourceValues.path!, updatedAt: resourceValues.contentModificationDate!))
+         } 
+      } catch {
+         print ("error");
+      }
+      // print(urls)
+   }
+
+   public func scan2(notif:Bool = false) -> [URL] {
       let url = URL.init(fileURLWithPath: "/Users/pascalvonfintel/Documents/Personal Writings");
       // let url = Bundle.main.bundleURL;
-      print(url);
+      // print(url);
       let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey])
       let directoryEnumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: Array(resourceKeys), options: .skipsHiddenFiles)!
  
@@ -35,7 +61,7 @@ public final class MDScanner {
          if !isDirectory {
             if (name.suffix(8) == ".scan.md") {
                fileURLs.append(fileURL)
-               print(name);
+               // print(name);
             }
          }
       }
@@ -44,13 +70,21 @@ public final class MDScanner {
             let test = try String (contentsOf: url);
             let arrayOfStrings = test.components(separatedBy: "\n")
 
-            let todos = arrayOfStrings.filter({line in 
-               return line.prefix(5) == "- [ ]" || line.prefix(5) == "- [x]"; 
-            });
-            let resourceValues = try url.resourceValues(forKeys: [.nameKey, .contentModificationDateKey]);
+            let resourceValues = try url.resourceValues(forKeys: [.nameKey, .pathKey, .contentModificationDateKey]);
+            // If urls not initialized, or if notification was recieved, bypass
+            if (urls.count != 0 && !notif) {
+               // If file not more recent, break
+               if (urls[urls.firstIndex(where: {$0.path == resourceValues.path})!].updatedAt == resourceValues.contentModificationDate!) {
+                  break;
+               }
+            }
             // Name of file without .scan.md
             let name = resourceValues.name!.dropLast(8);
             let lastmodified = resourceValues.contentModificationDate;
+
+            let todos = arrayOfStrings.filter({line in 
+               return line.prefix(5) == "- [ ]" || line.prefix(5) == "- [x]"; 
+            });
             // If list does not exist, create it
             if !reminders2.hasList(calendarName: String(name)) {
                reminders2.newList(calendarName: String(name));
@@ -109,5 +143,6 @@ public final class MDScanner {
             exit(1);
          }   
       }
+      return fileURLs;
    }
 }

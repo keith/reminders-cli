@@ -2,6 +2,14 @@ import Foundation
 import EventKit
 import SystemPackage
 
+/* 
+* TODO: Reminders w/ due dates
+* TODO: Adding new reminders to list via reminders app
+* TODO: Deleting reminders
+* TODO: Nested reminders??
+* TODO: Grouped reminders lists??
+*/
+
 private let Store = EKEventStore();
 
 let reminders2 = Reminders();
@@ -16,10 +24,11 @@ public final class MDScanner {
    var urls:[URLUpdates] = [];
 
    public func scan() {
-      NotificationCenter.default.addObserver(self, selector: #selector(reloadModelData(notification:)), name: Notification.Name.EKEventStoreChanged, object: nil)
-      let timer = Timer(timeInterval: 1.0, target: self, selector: #selector(fire), userInfo: nil, repeats: true);
-      RunLoop.current.add(timer, forMode: .common)
-      RunLoop.current.run();
+      // NotificationCenter.default.addObserver(self, selector: #selector(reloadModelData(notification:)), name: Notification.Name.EKEventStoreChanged, object: nil)
+      // let timer = Timer(timeInterval: 1.0, target: self, selector: #selector(fire), userInfo: nil, repeats: true);
+      // RunLoop.current.add(timer, forMode: .common)
+      // RunLoop.current.run();
+      scan2();
    }
    @objc private func reloadModelData(notification: NSNotification) {
       print("Recieved notification")
@@ -67,8 +76,7 @@ public final class MDScanner {
       }
       for url in fileURLs {
          do {
-            let test = try String (contentsOf: url);
-            let arrayOfStrings = test.components(separatedBy: "\n")
+            var arrayOfStrings = try String(contentsOf: url).components(separatedBy: "\n")
 
             let resourceValues = try url.resourceValues(forKeys: [.nameKey, .pathKey, .contentModificationDateKey]);
             // If urls not initialized, or if notification was recieved, bypass
@@ -97,7 +105,7 @@ public final class MDScanner {
             for todo in todos {
                // Get rid of '- [ ] '
                let todoName = todo.dropFirst(6);
-               // Add reminder if not already there
+               // Add reminder if not already in reminders list
                if !reminderTitleArray.contains(String(todoName)) {
                  reminders2.addReminder(string: String (todoName), toListNamed: String(name), dueDate: nil);
                } else {
@@ -136,6 +144,36 @@ public final class MDScanner {
                }
                // print(todoName);
             }
+            // Loop through reminders in reminders list
+            for rem in remindersArray {
+               // Stores the names without - [(x)]
+               let todoNames = todos.map({todo in
+                 return todo.dropFirst(6);
+               })
+               // If reminder not in md file
+               if !todoNames.contains(Substring.init(rem.title)) {
+                  let section = "## Todos added from cli";
+                  // Check if there's not a '## Todos added from cli' section
+                  let path:FilePath = FilePath.init(url.path);
+                  print(arrayOfStrings);
+                  print(rem.title);
+                  if (arrayOfStrings.firstIndex(of: section) == nil) {
+                     let fd = try FileDescriptor.open(path, .readWrite, options: [.append]);
+                     let str = "\n" + section + "\n\n";
+                     try fd.closeAfter {
+                        _ = try fd.writeAll(str.utf8);
+                     }
+                     // Update arrayOfStrings
+                     arrayOfStrings = try String(contentsOf: url).components(separatedBy: "\n")
+                  }
+                  let remString = "- [" + (rem.isCompleted ? "x" : " ") + "] \(rem.title!)\n";
+                  let fd = try FileDescriptor.open(path, .readWrite, options: [.append]);
+                  try fd.closeAfter {
+                     _ = try fd.writeAll(remString.utf8);
+                  }
+               }
+            }
+
             // print (test);
          } catch let error {
             print(error);

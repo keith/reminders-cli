@@ -4,7 +4,6 @@ import SystemPackage
 
 /* 
 * TODO: Reminders w/ due dates
-* TODO: Adding new reminders to list via reminders app
 * TODO: Deleting reminders
 * TODO: Nested reminders??
 * TODO: Grouped reminders lists??
@@ -17,41 +16,42 @@ let reminders2 = Reminders();
 struct URLUpdates {
    var path:String;
    var updatedAt:Date
+   var todos:[String];
+}
+
+struct ReminderUpdates {
+   var title:String;
+   var reminderTitles:[String];
 }
 
 public final class MDScanner {
 
    var urls:[URLUpdates] = [];
+   var cals:[ReminderUpdates] = [];
 
    public func scan() {
-      // NotificationCenter.default.addObserver(self, selector: #selector(reloadModelData(notification:)), name: Notification.Name.EKEventStoreChanged, object: nil)
-      // let timer = Timer(timeInterval: 1.0, target: self, selector: #selector(fire), userInfo: nil, repeats: true);
-      // RunLoop.current.add(timer, forMode: .common)
-      // RunLoop.current.run();
-      scan2();
+      NotificationCenter.default.addObserver(self, selector: #selector(reloadModelData(notification:)), name: Notification.Name.EKEventStoreChanged, object: nil)
+      let timer = Timer(timeInterval: 1.0, target: self, selector: #selector(fire), userInfo: nil, repeats: true);
+      RunLoop.current.add(timer, forMode: .common)
+      RunLoop.current.run();
+      // scan2();
    }
    @objc private func reloadModelData(notification: NSNotification) {
-      print("Recieved notification")
+      print("Recieved notification");
       fire(notif: true);
    }
 
    @objc private func fire(notif:Bool = false) {
-      // Check if files have updated
-      // Keep track of updatedAtDates
-      let ret = scan2(notif: notif);
-      urls = [];
-      do {
-         for url in ret {
-            let resourceValues = try url.resourceValues(forKeys: [.pathKey, .contentModificationDateKey]);
-            urls.append(URLUpdates.init(path: resourceValues.path!, updatedAt: resourceValues.contentModificationDate!))
-         } 
-      } catch {
-         print ("error");
-      }
-      // print(urls)
+      scan2(notif: notif);
+      // for url in urls {
+      //    print(url)
+      // }
+      // for cal in cals {
+      //    print(cal)
+      // };
    }
 
-   public func scan2(notif:Bool = false) -> [URL] {
+   public func scan2(notif:Bool = false) {
       let url = URL.init(fileURLWithPath: "/Users/pascalvonfintel/Documents/Personal Writings");
       // let url = Bundle.main.bundleURL;
       // print(url);
@@ -105,9 +105,28 @@ public final class MDScanner {
             for todo in todos {
                // Get rid of '- [ ] '
                let todoName = todo.dropFirst(6);
-               // Add reminder if not already in reminders list
+               // If reminder in md and not reminders app
                if !reminderTitleArray.contains(String(todoName)) {
-                 reminders2.addReminder(string: String (todoName), toListNamed: String(name), dueDate: nil);
+                  // If todo is in previous record of reminderTitleArray (has it been deleted?)
+                  if (cals.firstIndex(where: {$0.title == name}) != nil && cals[cals.firstIndex(where: {$0.title == name})!].reminderTitles.contains(String(todoName))) {
+                     print("cals: \(cals)");
+                     print("in notif triggered removal")                     
+                     // Remove todo
+                     arrayOfStrings.remove(at: arrayOfStrings.firstIndex(of: todo)!);
+                     print(arrayOfStrings);
+                     let path:FilePath = FilePath.init(url.path);
+                     let fd = try FileDescriptor.open(path, .readWrite, options: [.truncate]);
+                     // Loop through and rewrite file without line
+                     // try fd.seek(offset: Int64.init(pos-1), from: .start);
+                     try fd.closeAfter {
+                        for str in arrayOfStrings {
+                           _ = try fd.writeAll((str + "\n").utf8);
+                        }
+                     }
+                  } else {
+                     // Add reminder
+                     reminders2.addReminder(string: String (todoName), toListNamed: String(name), isComplete: todo.prefix(5) == "- [x]", dueDate: nil);
+                  }
                } else {
                   let rem = remindersArray.find(where: {$0.title == todoName});
                   // File updated more recently than reminder
@@ -126,7 +145,6 @@ public final class MDScanner {
                      if (isComplete == (todo.prefix(5) == "- [x]")) {
                         continue;
                      }
-                     // Stores length of line to overwrite
                      let pos = arrayOfStrings[0..<arrayOfStrings.firstIndex(of: todo)!].reduce(0, {x, y in
                         var buf:[UInt8] = Array(y.utf8);
                         buf.append(contentsOf: [10]);
@@ -155,25 +173,31 @@ public final class MDScanner {
                   let section = "## Todos added from cli";
                   // Check if there's not a '## Todos added from cli' section
                   let path:FilePath = FilePath.init(url.path);
-                  print(arrayOfStrings);
-                  print(rem.title);
-                  if (arrayOfStrings.firstIndex(of: section) == nil) {
-                     let fd = try FileDescriptor.open(path, .readWrite, options: [.append]);
-                     let str = "\n" + section + "\n\n";
-                     try fd.closeAfter {
-                        _ = try fd.writeAll(str.utf8);
+
+                  // If todo is in previous record of todoNames (has it been deleted?)
+                  if (urls.firstIndex(where: {$0.path == url.path}) != nil && urls[urls.firstIndex(where: {$0.path == url.path})!].todos.contains(String(rem.title))) {
+                     // Remove todo
+                     try Store.remove(rem, commit: true);
+                  } else {
+                     print(arrayOfStrings);
+                     print(rem.title);
+                     if (arrayOfStrings.firstIndex(of: section) == nil) {
+                        let fd = try FileDescriptor.open(path, .readWrite, options: [.append]);
+                        let str = "\n" + section + "\n\n";
+                        try fd.closeAfter {
+                           _ = try fd.writeAll(str.utf8);
+                        }
+                        // Update arrayOfStrings
+                        arrayOfStrings = try String(contentsOf: url).components(separatedBy: "\n")
                      }
-                     // Update arrayOfStrings
-                     arrayOfStrings = try String(contentsOf: url).components(separatedBy: "\n")
-                  }
-                  let remString = "- [" + (rem.isCompleted ? "x" : " ") + "] \(rem.title!)\n";
-                  let fd = try FileDescriptor.open(path, .readWrite, options: [.append]);
-                  try fd.closeAfter {
-                     _ = try fd.writeAll(remString.utf8);
+                     let remString = "- [" + (rem.isCompleted ? "x" : " ") + "] \(rem.title!)\n";
+                     let fd = try FileDescriptor.open(path, .readWrite, options: [.append]);
+                     try fd.closeAfter {
+                        _ = try fd.writeAll(remString.utf8);
+                     }
                   }
                }
             }
-
             // print (test);
          } catch let error {
             print(error);
@@ -181,6 +205,37 @@ public final class MDScanner {
             exit(1);
          }   
       }
-      return fileURLs;
+      urls = [];
+      cals = [];
+      do {
+         for url in fileURLs {
+            let resourceValues = try url.resourceValues(forKeys: [.pathKey, .nameKey, .contentModificationDateKey]);
+            let arrayOfStrings = try String(contentsOf: url).components(separatedBy: "\n")
+            // Name of file without .scan.md
+            let name = resourceValues.name!.dropLast(8);
+            let lastmodified = resourceValues.contentModificationDate!;
+            let path = resourceValues.path!;
+            let todos = arrayOfStrings.filter({line in 
+               return line.prefix(5) == "- [ ]" || line.prefix(5) == "- [x]"; 
+            });
+            var todoNames:[String] = [];
+            for todo in todos {
+               todoNames.append(String(todo.dropFirst(6)));
+            }
+            // If list does not exist, create it
+            if !reminders2.hasList(calendarName: String(name)) {
+               reminders2.newList(calendarName: String(name));
+            }
+            let remindersArray = reminders2.returnListItems(withName: String(name));
+            var reminderTitleArray:[String] = [];
+            for rem in remindersArray {
+               reminderTitleArray.append(rem.title);
+            }
+            urls.append(URLUpdates.init(path:path, updatedAt: lastmodified, todos:todoNames))
+            cals.append(ReminderUpdates.init(title: String(name), reminderTitles: reminderTitleArray));
+         }
+      } catch {
+         print ("error");
+      }
    }
 }

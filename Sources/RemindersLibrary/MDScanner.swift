@@ -30,6 +30,8 @@ public final class MDScanner {
    var cals:[ReminderUpdates] = [];
 
    public func scan() {
+      fputs("hi",stderr);
+      reminders2.showLists();
       NotificationCenter.default.addObserver(self, selector: #selector(reloadModelData(notification:)), name: Notification.Name.EKEventStoreChanged, object: nil)
       let timer = Timer(timeInterval: 1.0, target: self, selector: #selector(fire), userInfo: nil, repeats: true);
       RunLoop.current.add(timer, forMode: .common)

@@ -30,7 +30,8 @@ public final class Reminders {
     func showLists() {
         let calendars = self.getCalendars()
         for calendar in calendars {
-            print(calendar.title);
+            // print(calendar.title);
+            fputs(calendar.title,stderr);
         }
     }
 

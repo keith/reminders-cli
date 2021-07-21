@@ -16,7 +16,7 @@ let reminders2 = Reminders();
 struct URLUpdates {
    var path:String;
    var updatedAt:Date
-   var todos:[String];
+   var todos:[String.SubSequence];
 }
 
 struct ReminderUpdates {
@@ -111,16 +111,10 @@ public final class MDScanner {
                // Get rid of '- [ ] '
                var todoName = todo.dropFirst(6);
                // Get date, if there is one
-               let dateString = todo.suffix(from: todo.index(todo.lastIndex(of: "–") ?? todo.index(todo.endIndex, offsetBy: -2), offsetBy: 2));
-               print(dateString);
-
+               let dateString = getDate(todo: String(todoName));
                // If dateString, remove dateString from todoName
-               if (dateString.count >= 1) {
-                  // Can force because we know dateString exists
-                  todoName = todoName.prefix(upTo: todo.index(todo.lastIndex(of: "–")!, offsetBy: -1));
-                  print(todoName);
-                  // print(dateString);
-               }
+               todoName = removeDate(todo: String(todoName));
+               print(todoName);
                // Convert dateString to date
                let date = DateComponents(argument: String(dateString));
                print(date);
@@ -147,19 +141,32 @@ public final class MDScanner {
                      reminders2.addReminder(string: String (todoName), toListNamed: String(name), isComplete: todo.prefix(5) == "- [x]", dueDate: date);
                   }
                } else {
-                  let rem = remindersArray.find(where: {$0.title == todoName});
+                  let rem = remindersArray.find(where: {$0.title == todoName})!;
                   // File updated more recently than reminder
-                  if (rem!.lastModifiedDate! < lastmodified!) {
+                  if (rem.lastModifiedDate! < lastmodified!) {
+                     // Compare dates
+                     var dateDifference:Bool;
+                     if (rem.dueDateComponents != nil) {
+                        // True if dates are different
+                        dateDifference = date?.date != rem.dueDateComponents?.date
+                     } else {
+                        // True if date is existent and rem.dueDateComponents is not
+                        dateDifference = date != nil;
+                     }
+                     print(rem.dueDateComponents?.date)
+                     print(date?.date);
+                     print(dateDifference);
                      let isComplete = todo.prefix(5) == "- [x]";
-                     // If difference
-                     if (isComplete != rem?.isCompleted) {
-                        rem?.isCompleted = isComplete;
-                        try Store.save(rem!, commit: true)
-                        print("Updated '\(rem!.title!)'")
+                     // If difference in completeness
+                     if (isComplete != rem.isCompleted || dateDifference) {
+                        rem.isCompleted = isComplete;
+                        rem.dueDateComponents = date
+                        try Store.save(rem, commit: true)
+                        print("Updated '\(rem.title!)'")
                      }
                   } else {
                      // Determine whether to complete or uncomplete item (or do nothing)
-                     let isComplete = rem!.isCompleted;
+                     let isComplete = rem.isCompleted;
                      // If no difference
                      if (isComplete == (todo.prefix(5) == "- [x]")) {
                         continue;
@@ -181,17 +188,21 @@ public final class MDScanner {
                }
                // print(todoName);
             }
-            exit(1);
+            // Stores the names without - [(x)]
+            let todoNames = mapToNames(todos:todos);
             // Loop through reminders in reminders list
             for rem in remindersArray {
-               let formatter = DateFormatter()
-               formatter.dateFormat = "– EEEE, d 'at' h:mm a"
-               let outputString = formatter.string(from: rem.dueDateComponents!.date!)
-               print(outputString);
-               // Stores the names without - [(x)]
-               let todoNames = todos.map({todo in
-                 return todo.dropFirst(6);
-               })
+               var dateString:String = "";
+               if (rem.dueDateComponents != nil) {
+                  let formatter = DateFormatter()
+                  // Check if date is all day
+                  if (rem.dueDateComponents!.hour != nil) {
+                     formatter.dateFormat = " – EEEE, d 'at' h:mm a"
+                  } else {
+                     formatter.dateFormat = " – EEEE, d"
+                  }
+                  dateString = formatter.string(from: rem.dueDateComponents!.date!)
+               }   
                // If reminder not in md file
                if !todoNames.contains(Substring.init(rem.title)) {
                   let section = "## Todos added from cli";
@@ -199,12 +210,10 @@ public final class MDScanner {
                   let path:FilePath = FilePath.init(url.path);
 
                   // If todo is in previous record of todoNames (has it been deleted?)
-                  if (urls.firstIndex(where: {$0.path == url.path}) != nil && urls[urls.firstIndex(where: {$0.path == url.path})!].todos.contains(String(rem.title))) {
+                  if (urls.firstIndex(where: {$0.path == url.path}) != nil && urls[urls.firstIndex(where: {$0.path == url.path})!].todos.contains(String.SubSequence(rem.title))) {
                      // Remove todo
                      try Store.remove(rem, commit: true);
                   } else {
-                     print(arrayOfStrings);
-                     print(rem.title);
                      if (arrayOfStrings.firstIndex(of: section) == nil) {
                         let fd = try FileDescriptor.open(path, .readWrite, options: [.append]);
                         let str = "\n" + section + "\n\n";
@@ -214,7 +223,7 @@ public final class MDScanner {
                         // Update arrayOfStrings
                         arrayOfStrings = try String(contentsOf: url).components(separatedBy: "\n")
                      }
-                     let remString = "- [" + (rem.isCompleted ? "x" : " ") + "] \(rem.title!)\n";
+                     let remString = "- [" + (rem.isCompleted ? "x" : " ") + "] \(rem.title!)\(dateString)\n";
                      let fd = try FileDescriptor.open(path, .readWrite, options: [.append]);
                      try fd.closeAfter {
                         _ = try fd.writeAll(remString.utf8);
@@ -231,6 +240,8 @@ public final class MDScanner {
       }
       urls = [];
       cals = [];
+      // Second loop through files in order to keep record of what cals and files contained at last go through
+      // This is done so we know which file or calendar list has most recently been updated so we can properly sync items
       do {
          for url in fileURLs {
             let resourceValues = try url.resourceValues(forKeys: [.pathKey, .nameKey, .contentModificationDateKey]);
@@ -242,10 +253,7 @@ public final class MDScanner {
             let todos = arrayOfStrings.filter({line in 
                return line.prefix(5) == "- [ ]" || line.prefix(5) == "- [x]"; 
             });
-            var todoNames:[String] = [];
-            for todo in todos {
-               todoNames.append(String(todo.dropFirst(6)));
-            }
+            let todoNames = mapToNames(todos: todos);
             // If list does not exist, create it
             if !reminders2.hasList(calendarName: String(name)) {
                reminders2.newList(calendarName: String(name));
@@ -262,4 +270,22 @@ public final class MDScanner {
          print ("error");
       }
    }
+   // Gets the date suffix if there is one, otherwise returns an empty string
+   private func getDate(todo:String) -> String.SubSequence {
+     return todo.suffix(from: todo.index(todo.lastIndex(of: "–") ?? todo.index(todo.endIndex, offsetBy: -2), offsetBy: 2));
+   }
+   // Returns the todo without a date suffix, if there is one
+   private func removeDate(todo:String) -> String.SubSequence {
+      if (todo.lastIndex(of: "–") != nil) {
+         return todo.prefix(upTo: todo.index(todo.lastIndex(of: "–")!, offsetBy: -1));
+      }
+      return String.SubSequence(todo);
+   }
+   // Remose - [ ] prefix and date suffix
+   private func mapToNames(todos:[String])->[String.SubSequence]{
+      return todos.map({todo in
+         return removeDate(todo: String(todo.dropFirst(6)));
+      })
+   }
 }
+

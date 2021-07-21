@@ -114,10 +114,8 @@ public final class MDScanner {
                let dateString = getDate(todo: String(todoName));
                // If dateString, remove dateString from todoName
                todoName = removeDate(todo: String(todoName));
-               print(todoName);
                // Convert dateString to date
                let date = DateComponents(argument: String(dateString));
-               print(date);
                // If reminder in md and not reminders app
                if !reminderTitleArray.contains(String(todoName)) {
                   // If todo is in previous record of reminderTitleArray (has it been deleted?)
@@ -126,11 +124,9 @@ public final class MDScanner {
                      print("in notif triggered removal")                     
                      // Remove todo
                      arrayOfStrings.remove(at: arrayOfStrings.firstIndex(of: todo)!);
-                     print(arrayOfStrings);
                      let path:FilePath = FilePath.init(url.path);
                      let fd = try FileDescriptor.open(path, .readWrite, options: [.truncate]);
                      // Loop through and rewrite file without line
-                     // try fd.seek(offset: Int64.init(pos-1), from: .start);
                      try fd.closeAfter {
                         for str in arrayOfStrings {
                            _ = try fd.writeAll((str + "\n").utf8);
@@ -162,6 +158,7 @@ public final class MDScanner {
                         try Store.save(rem, commit: true)
                         print("Updated '\(rem.title!)'")
                      }
+                  // Reminder updated more recently than file
                   } else {
                      // Determine whether to complete or uncomplete item
                      let isComplete = rem.isCompleted;
@@ -176,7 +173,7 @@ public final class MDScanner {
                         dateDifference = date != nil;
                      } 
                      // If no difference
-                     if (isComplete == (todo.prefix(5) == "- [x]") || !dateDifference) {
+                     if (isComplete == (todo.prefix(5) == "- [x]") && !dateDifference) {
                         continue;
                      }
                      let pos = arrayOfStrings[0..<arrayOfStrings.firstIndex(of: todo)!].reduce(0, {x, y in
@@ -184,16 +181,28 @@ public final class MDScanner {
                         buf.append(contentsOf: [10]);
                         return x + buf.count;
                      });
-                     
                      let path:FilePath = FilePath.init(url.path);
                      let fd = try FileDescriptor.open(path, .readWrite);
                      try fd.seek(offset: Int64.init(pos+3), from: .start);
                      try fd.closeAfter {
                         let char = isComplete ? "x" : " ";
                         _ = try fd.writeAll(char.utf8);
-                        if (dateDifference) {
-                           // TODO solve deletion problem. Do we have to do the thing where we delete the whole file and rewrite it, or is there a better way?
-                           try fd.seek(offset: Int64.init(pos+), from: FileDescriptor.SeekOrigin)
+                     }
+                     if (dateDifference) {
+                        let fd = try FileDescriptor.open(path, .readWrite, options: [.truncate]);
+                        
+                        let index = arrayOfStrings.firstIndex(of: todo)
+                        let updatedTodo = removeDate(todo: todo) + formatDate(rem: rem);
+                        arrayOfStrings[index!] = String(updatedTodo);
+                        // Gets rid of last line if last line is a newline
+                        if (arrayOfStrings[arrayOfStrings.endIndex-1] == "") {
+                           arrayOfStrings = arrayOfStrings.dropLast()
+                        }
+                        try fd.closeAfter {
+                           for str in arrayOfStrings {
+                              // Don't add newline if str is a newline, otherwise do
+                              _ = try fd.writeAll((str + "\n").utf8);
+                           }
                         }
                      }
                   }
@@ -206,14 +215,7 @@ public final class MDScanner {
             for rem in remindersArray {
                var dateString:String = "";
                if (rem.dueDateComponents != nil) {
-                  let formatter = DateFormatter()
-                  // Check if date is all day
-                  if (rem.dueDateComponents!.hour != nil) {
-                     formatter.dateFormat = " – EEEE d MMM 'at' h:mm a"
-                  } else {
-                     formatter.dateFormat = " – EEEE d MMM"
-                  }
-                  dateString = formatter.string(from: rem.dueDateComponents!.date!)
+                  dateString = formatDate(rem: rem);
                }   
                // If reminder not in md file
                if !todoNames.contains(Substring.init(rem.title)) {
@@ -298,6 +300,16 @@ public final class MDScanner {
       return todos.map({todo in
          return removeDate(todo: String(todo.dropFirst(6)));
       })
+   }
+   private func formatDate(rem:EKReminder) -> String {
+      let formatter = DateFormatter()
+      // Check if date is all day
+      if (rem.dueDateComponents!.hour != nil) {
+         formatter.dateFormat = " – EEEE d MMM 'at' h:mm a"
+      } else {
+         formatter.dateFormat = " – EEEE d MMM"
+      }
+      return formatter.string(from: rem.dueDateComponents!.date!)
    }
 }
 

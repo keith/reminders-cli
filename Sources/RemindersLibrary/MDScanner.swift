@@ -109,7 +109,21 @@ public final class MDScanner {
             }
             for todo in todos {
                // Get rid of '- [ ] '
-               let todoName = todo.dropFirst(6);
+               var todoName = todo.dropFirst(6);
+               // Get date, if there is one
+               let dateString = todo.suffix(from: todo.index(todo.lastIndex(of: "–") ?? todo.index(todo.endIndex, offsetBy: -2), offsetBy: 2));
+               print(dateString);
+
+               // If dateString, remove dateString from todoName
+               if (dateString.count >= 1) {
+                  // Can force because we know dateString exists
+                  todoName = todoName.prefix(upTo: todo.index(todo.lastIndex(of: "–")!, offsetBy: -1));
+                  print(todoName);
+                  // print(dateString);
+               }
+               // Convert dateString to date
+               let date = DateComponents(argument: String(dateString));
+               print(date);
                // If reminder in md and not reminders app
                if !reminderTitleArray.contains(String(todoName)) {
                   // If todo is in previous record of reminderTitleArray (has it been deleted?)
@@ -130,7 +144,7 @@ public final class MDScanner {
                      }
                   } else {
                      // Add reminder
-                     reminders2.addReminder(string: String (todoName), toListNamed: String(name), isComplete: todo.prefix(5) == "- [x]", dueDate: nil);
+                     reminders2.addReminder(string: String (todoName), toListNamed: String(name), isComplete: todo.prefix(5) == "- [x]", dueDate: date);
                   }
                } else {
                   let rem = remindersArray.find(where: {$0.title == todoName});
@@ -167,6 +181,7 @@ public final class MDScanner {
                }
                // print(todoName);
             }
+            exit(1);
             // Loop through reminders in reminders list
             for rem in remindersArray {
                let formatter = DateFormatter()
@@ -207,7 +222,6 @@ public final class MDScanner {
                   }
                }
             }
-            exit(1);
             // print (test);
          } catch let error {
             print(error);

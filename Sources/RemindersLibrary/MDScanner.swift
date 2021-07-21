@@ -30,8 +30,8 @@ public final class MDScanner {
    var cals:[ReminderUpdates] = [];
 
    public func scan() {
-      fputs("hi",stderr);
-      reminders2.showLists();
+      fputs("hi\n",stderr);
+      // reminders2.showLists();
       NotificationCenter.default.addObserver(self, selector: #selector(reloadModelData(notification:)), name: Notification.Name.EKEventStoreChanged, object: nil)
       let timer = Timer(timeInterval: 1.0, target: self, selector: #selector(fire), userInfo: nil, repeats: true);
       RunLoop.current.add(timer, forMode: .common)
@@ -61,6 +61,8 @@ public final class MDScanner {
       let directoryEnumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: Array(resourceKeys), options: .skipsHiddenFiles)!
  
       var fileURLs: [URL] = []
+      let suffix = ".scan.test.md";
+      // Find all files with .scan.md in 'url'
       for case let fileURL as URL in directoryEnumerator {
          guard let resourceValues = try? fileURL.resourceValues(forKeys: resourceKeys),
             let isDirectory = resourceValues.isDirectory,
@@ -70,12 +72,13 @@ public final class MDScanner {
             }
          
          if !isDirectory {
-            if (name.suffix(8) == ".scan.md") {
+            if (name.suffix(suffix.count) == suffix) {
                fileURLs.append(fileURL)
                // print(name);
             }
          }
       }
+      // Loop through each file with .scan.md
       for url in fileURLs {
          do {
             var arrayOfStrings = try String(contentsOf: url).components(separatedBy: "\n")
@@ -166,6 +169,10 @@ public final class MDScanner {
             }
             // Loop through reminders in reminders list
             for rem in remindersArray {
+               let formatter = DateFormatter()
+               formatter.dateFormat = "– EEEE, d 'at' h:mm a"
+               let outputString = formatter.string(from: rem.dueDateComponents!.date!)
+               print(outputString);
                // Stores the names without - [(x)]
                let todoNames = todos.map({todo in
                  return todo.dropFirst(6);
@@ -200,6 +207,7 @@ public final class MDScanner {
                   }
                }
             }
+            exit(1);
             // print (test);
          } catch let error {
             print(error);

@@ -148,14 +148,12 @@ public final class MDScanner {
                      var dateDifference:Bool;
                      if (rem.dueDateComponents != nil) {
                         // True if dates are different
-                        dateDifference = date?.date != rem.dueDateComponents?.date
+                        // Or if one of them has the hour property and the other doesn't 
+                        dateDifference = date?.date != rem.dueDateComponents?.date || (date?.hour == nil) != (rem.dueDateComponents?.hour == nil)
                      } else {
                         // True if date is existent and rem.dueDateComponents is not
                         dateDifference = date != nil;
-                     }
-                     print(rem.dueDateComponents?.date)
-                     print(date?.date);
-                     print(dateDifference);
+                     }                      
                      let isComplete = todo.prefix(5) == "- [x]";
                      // If difference in completeness
                      if (isComplete != rem.isCompleted || dateDifference) {
@@ -165,10 +163,20 @@ public final class MDScanner {
                         print("Updated '\(rem.title!)'")
                      }
                   } else {
-                     // Determine whether to complete or uncomplete item (or do nothing)
+                     // Determine whether to complete or uncomplete item
                      let isComplete = rem.isCompleted;
+                     // Determine whether to update date
+                     var dateDifference:Bool;
+                     if (rem.dueDateComponents != nil) {
+                        // True if dates are different
+                        // Or if one of them has the hour property and the other doesn't 
+                        dateDifference = date?.date != rem.dueDateComponents?.date || (date?.hour == nil) != (rem.dueDateComponents?.hour == nil)
+                     } else {
+                        // True if date is existent and rem.dueDateComponents is not
+                        dateDifference = date != nil;
+                     } 
                      // If no difference
-                     if (isComplete == (todo.prefix(5) == "- [x]")) {
+                     if (isComplete == (todo.prefix(5) == "- [x]") || !dateDifference) {
                         continue;
                      }
                      let pos = arrayOfStrings[0..<arrayOfStrings.firstIndex(of: todo)!].reduce(0, {x, y in
@@ -183,6 +191,10 @@ public final class MDScanner {
                      try fd.closeAfter {
                         let char = isComplete ? "x" : " ";
                         _ = try fd.writeAll(char.utf8);
+                        if (dateDifference) {
+                           // TODO solve deletion problem. Do we have to do the thing where we delete the whole file and rewrite it, or is there a better way?
+                           try fd.seek(offset: Int64.init(pos+), from: FileDescriptor.SeekOrigin)
+                        }
                      }
                   }
                }
@@ -197,9 +209,9 @@ public final class MDScanner {
                   let formatter = DateFormatter()
                   // Check if date is all day
                   if (rem.dueDateComponents!.hour != nil) {
-                     formatter.dateFormat = " – EEEE, d 'at' h:mm a"
+                     formatter.dateFormat = " – EEEE d MMM 'at' h:mm a"
                   } else {
-                     formatter.dateFormat = " – EEEE, d"
+                     formatter.dateFormat = " – EEEE d MMM"
                   }
                   dateString = formatter.string(from: rem.dueDateComponents!.date!)
                }   

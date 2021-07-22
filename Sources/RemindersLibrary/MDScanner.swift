@@ -120,8 +120,7 @@ public final class MDScanner {
                if !reminderTitleArray.contains(String(todoName)) {
                   // If todo is in previous record of reminderTitleArray (has it been deleted?)
                   if (cals.firstIndex(where: {$0.title == name}) != nil && cals[cals.firstIndex(where: {$0.title == name})!].reminderTitles.contains(String(todoName))) {
-                     print("cals: \(cals)");
-                     print("in notif triggered removal")                     
+                     print("removing \(todoName) in \(name)")        
                      // Remove todo
                      arrayOfStrings.remove(at: arrayOfStrings.firstIndex(of: todo)!);
                      let path:FilePath = FilePath.init(url.path);
@@ -149,14 +148,18 @@ public final class MDScanner {
                      } else {
                         // True if date is existent and rem.dueDateComponents is not
                         dateDifference = date != nil;
-                     }                      
+                     }
                      let isComplete = todo.prefix(5) == "- [x]";
                      // If difference in completeness
                      if (isComplete != rem.isCompleted || dateDifference) {
                         rem.isCompleted = isComplete;
                         rem.dueDateComponents = date
-                        try Store.save(rem, commit: true)
-                        print("Updated '\(rem.title!)'")
+                        rem.startDateComponents = date;
+                        rem.alarms = [EKAlarm.init(relativeOffset: 0)]
+                        try Store.save(rem, commit: true);
+                        print("Updated '\(rem.title!)' in \(name)")
+                        if (dateDifference) {print("Updated date for \(todoName) in \(name) to \(date?.date)")}
+                        else {print("Set isCompleted to \(isComplete)")}
                      }
                   // Reminder updated more recently than file
                   } else {
@@ -187,6 +190,9 @@ public final class MDScanner {
                      try fd.closeAfter {
                         let char = isComplete ? "x" : " ";
                         _ = try fd.writeAll(char.utf8);
+                        if (isComplete == (todo.prefix(5) == "- [x]")) {
+                           print("Set isCompleted for \(todoName) in \(name) to \(isComplete)")
+                        }
                      }
                      if (dateDifference) {
                         let fd = try FileDescriptor.open(path, .readWrite, options: [.truncate]);
@@ -203,6 +209,7 @@ public final class MDScanner {
                               // Don't add newline if str is a newline, otherwise do
                               _ = try fd.writeAll((str + "\n").utf8);
                            }
+                           print("Updated date for \(todoName) in \(name) to \(date?.date)")
                         }
                      }
                   }
@@ -226,6 +233,7 @@ public final class MDScanner {
                   // If todo is in previous record of todoNames (has it been deleted?)
                   if (urls.firstIndex(where: {$0.path == url.path}) != nil && urls[urls.firstIndex(where: {$0.path == url.path})!].todos.contains(String.SubSequence(rem.title))) {
                      // Remove todo
+                     print("Removing \(rem.title) in \(name)")
                      try Store.remove(rem, commit: true);
                   } else {
                      if (arrayOfStrings.firstIndex(of: section) == nil) {
@@ -241,6 +249,7 @@ public final class MDScanner {
                      let fd = try FileDescriptor.open(path, .readWrite, options: [.append]);
                      try fd.closeAfter {
                         _ = try fd.writeAll(remString.utf8);
+                        print("added \(rem.title!) with dateString \(dateString) to \(name)");
                      }
                   }
                }

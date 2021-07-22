@@ -61,7 +61,7 @@ public final class MDScanner {
       let directoryEnumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: Array(resourceKeys), options: .skipsHiddenFiles)!
  
       var fileURLs: [URL] = []
-      let suffix = ".scan.test.md";
+      let suffix = ".scan.md";
       // Find all files with .scan.md in 'url'
       for case let fileURL as URL in directoryEnumerator {
          guard let resourceValues = try? fileURL.resourceValues(forKeys: resourceKeys),

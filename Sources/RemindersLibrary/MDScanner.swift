@@ -39,24 +39,24 @@ public final class MDScanner {
       // scan2();
    }
    @objc private func reloadModelData(notification: NSNotification) {
-      print("Recieved notification");
+      fputs("Recieved notification", stderr);
       fire(notif: true);
    }
 
    @objc private func fire(notif:Bool = false) {
       scan2(notif: notif);
       // for url in urls {
-      //    print(url)
+      //    fputs(url, stderr)
       // }
       // for cal in cals {
-      //    print(cal)
+      //    fputs(cal, stderr)
       // };
    }
 
    public func scan2(notif:Bool = false) {
       let url = URL.init(fileURLWithPath: "/Users/pascalvonfintel/Documents/Personal Writings");
       // let url = Bundle.main.bundleURL;
-      // print(url);
+      // fputs(url), stderr;
       let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey])
       let directoryEnumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: Array(resourceKeys), options: .skipsHiddenFiles)!
  
@@ -74,7 +74,7 @@ public final class MDScanner {
          if !isDirectory {
             if (name.suffix(suffix.count) == suffix) {
                fileURLs.append(fileURL)
-               // print(name);
+               // fputs(name), stderr;
             }
          }
       }
@@ -120,7 +120,7 @@ public final class MDScanner {
                if !reminderTitleArray.contains(String(todoName)) {
                   // If todo is in previous record of reminderTitleArray (has it been deleted?)
                   if (cals.firstIndex(where: {$0.title == name}) != nil && cals[cals.firstIndex(where: {$0.title == name})!].reminderTitles.contains(String(todoName))) {
-                     print("removing \(todoName) in \(name)")        
+                     fputs("removing \(todoName) in \(name)", stderr)
                      // Remove todo
                      arrayOfStrings.remove(at: arrayOfStrings.firstIndex(of: todo)!);
                      let path:FilePath = FilePath.init(url.path);
@@ -157,9 +157,9 @@ public final class MDScanner {
                         rem.startDateComponents = date;
                         rem.alarms = [EKAlarm.init(relativeOffset: 0)]
                         try Store.save(rem, commit: true);
-                        print("Updated '\(rem.title!)' in \(name)")
-                        if (dateDifference) {print("Updated date for \(todoName) in \(name) to \(date?.date)")}
-                        else {print("Set isCompleted to \(isComplete)")}
+                        fputs("Updated '\(rem.title!)' in \(name)", stderr)
+                        if (dateDifference) {fputs("Updated date for \(todoName) in \(name) to \(date?.date)", stderr)}
+                        else {fputs("Set isCompleted to \(isComplete)", stderr)}
                      }
                   // Reminder updated more recently than file
                   } else {
@@ -191,7 +191,7 @@ public final class MDScanner {
                         let char = isComplete ? "x" : " ";
                         _ = try fd.writeAll(char.utf8);
                         if (isComplete == (todo.prefix(5) == "- [x]")) {
-                           print("Set isCompleted for \(todoName) in \(name) to \(isComplete)")
+                           fputs("Set isCompleted for \(todoName) in \(name) to \(isComplete)", stderr)
                         }
                      }
                      if (dateDifference) {
@@ -209,12 +209,12 @@ public final class MDScanner {
                               // Don't add newline if str is a newline, otherwise do
                               _ = try fd.writeAll((str + "\n").utf8);
                            }
-                           print("Updated date for \(todoName) in \(name) to \(date?.date)")
+                           fputs("Updated date for \(todoName) in \(name) to \(date?.date)", stderr)
                         }
                      }
                   }
                }
-               // print(todoName);
+               // fputs(todoName), stderr;
             }
             // Stores the names without - [(x)]
             let todoNames = mapToNames(todos:todos);
@@ -233,7 +233,7 @@ public final class MDScanner {
                   // If todo is in previous record of todoNames (has it been deleted?)
                   if (urls.firstIndex(where: {$0.path == url.path}) != nil && urls[urls.firstIndex(where: {$0.path == url.path})!].todos.contains(String.SubSequence(rem.title))) {
                      // Remove todo
-                     print("Removing \(rem.title) in \(name)")
+                     fputs("Removing \(rem.title) in \(name)", stderr)
                      try Store.remove(rem, commit: true);
                   } else {
                      if (arrayOfStrings.firstIndex(of: section) == nil) {
@@ -249,15 +249,15 @@ public final class MDScanner {
                      let fd = try FileDescriptor.open(path, .readWrite, options: [.append]);
                      try fd.closeAfter {
                         _ = try fd.writeAll(remString.utf8);
-                        print("added \(rem.title!) with dateString \(dateString) to \(name)");
+                        fputs("added \(rem.title!) with dateString \(dateString) to \(name)", stderr);
                      }
                   }
                }
             }
             // print (test);
          } catch let error {
-            print(error);
-            print("error");
+            fputs(error.localizedDescription, stderr);
+            fputs("error", stderr);
             exit(1);
          }   
       }

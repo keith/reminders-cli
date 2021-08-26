@@ -20,8 +20,14 @@ private struct Show: ParsableCommand {
         help: "The list to print items from, see 'show-lists' for names")
     var listName: String
 
+    @Flag(help: "Show completed items only")
+    var completed = false
+
+    @Flag(help: "Show all items")
+    var all = false
+
     func run() {
-        reminders.showListItems(withName: self.listName)
+        reminders.showListItems(withName: self.listName, showCompleted: completed, showAll: all)
     }
 }
 

@@ -34,11 +34,11 @@ public final class Reminders {
         }
     }
 
-    func showListItems(withName name: String) {
+    func showListItems(withName name: String, showCompleted: Bool = false, showAll: Bool = false) {
         let calendar = self.calendar(withName: name)
         let semaphore = DispatchSemaphore(value: 0)
 
-        self.reminders(onCalendar: calendar) { reminders in
+        self.reminders(onCalendar: calendar, showCompleted: showCompleted, showAll: showAll) { reminders in
             for (i, reminder) in reminders.enumerated() {
                 print(format(reminder, at: i))
             }
@@ -93,13 +93,27 @@ public final class Reminders {
     // MARK: - Private functions
 
     private func reminders(onCalendar calendar: EKCalendar,
+                                      showCompleted: Bool = false,
+                                      showAll: Bool = false,
                                       completion: @escaping (_ reminders: [EKReminder]) -> Void)
     {
         let predicate = Store.predicateForReminders(in: [calendar])
         Store.fetchReminders(matching: predicate) { reminders in
             let reminders = reminders?
-                .filter { !$0.isCompleted }
+                .filter { self.showItem(item: $0, showCompleted: showCompleted, showAll: showAll) }
             completion(reminders ?? [])
+        }
+    }
+
+    private func showItem(item: EKReminder, showCompleted: Bool, showAll: Bool) -> Bool {
+        if showAll {
+            return true
+        } else {
+            if showCompleted {
+                return item.isCompleted
+            } else {
+                return !item.isCompleted
+            }
         }
     }
 

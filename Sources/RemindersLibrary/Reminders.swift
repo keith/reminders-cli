@@ -31,7 +31,7 @@ public final class Reminders {
         let calendars = self.getCalendars()
         for calendar in calendars {
             // print(calendar.title);
-            fputs(calendar.title,stderr);
+            fputs(calendar.title+"\n",stderr);
         }
     }
 
@@ -41,7 +41,8 @@ public final class Reminders {
 
         self.reminders(onCalendar: calendar) { reminders in
             for (i, reminder) in reminders.enumerated() {
-                print(format(reminder, at: i))
+                fputs(format(reminder, at: i), stderr);
+                // print(format(reminder, at: i))
             }
 
             semaphore.signal()
@@ -177,7 +178,7 @@ public final class Reminders {
         }
     }
 
-    private func getCalendars() -> [EKCalendar] {
+    func getCalendars() -> [EKCalendar] {
         return Store.calendars(for: .reminder)
                     .filter { $0.allowsContentModifications }
     }

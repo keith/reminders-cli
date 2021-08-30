@@ -31,7 +31,7 @@ public final class MDScanner {
 
    public func scan() {
       fputs("hi\n",stderr);
-      // reminders2.showLists();
+      reminders2.showLists();
       NotificationCenter.default.addObserver(self, selector: #selector(reloadModelData(notification:)), name: Notification.Name.EKEventStoreChanged, object: nil)
       let timer = Timer(timeInterval: 1.0, target: self, selector: #selector(fire), userInfo: nil, repeats: true);
       RunLoop.current.add(timer, forMode: .common)
@@ -39,7 +39,7 @@ public final class MDScanner {
       // scan2();
    }
    @objc private func reloadModelData(notification: NSNotification) {
-      fputs("Recieved notification", stderr);
+      fputs("Recieved notification\n", stderr);
       fire(notif: true);
    }
 
@@ -54,6 +54,10 @@ public final class MDScanner {
    }
 
    public func scan2(notif:Bool = false) {
+      // Check if Do Not Delete list has the reminder, if not it means that this app has disconnected and should not act
+      if (reminders2.returnListItems(withName: String("Do Not Delete")).count == 0) {
+         return;
+      }
       let url = URL.init(fileURLWithPath: "/Users/pascalvonfintel/Documents/Personal Writings");
       // let url = Bundle.main.bundleURL;
       // fputs(url), stderr;
@@ -61,7 +65,7 @@ public final class MDScanner {
       let directoryEnumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: Array(resourceKeys), options: .skipsHiddenFiles)!
  
       var fileURLs: [URL] = []
-      let suffix = ".scan.md";
+      let suffix = ".scan.test.md";
       // Find all files with .scan.md in 'url'
       for case let fileURL as URL in directoryEnumerator {
          guard let resourceValues = try? fileURL.resourceValues(forKeys: resourceKeys),
@@ -120,7 +124,7 @@ public final class MDScanner {
                if !reminderTitleArray.contains(String(todoName)) {
                   // If todo is in previous record of reminderTitleArray (has it been deleted?)
                   if (cals.firstIndex(where: {$0.title == name}) != nil && cals[cals.firstIndex(where: {$0.title == name})!].reminderTitles.contains(String(todoName))) {
-                     fputs("removing \(todoName) in \(name)", stderr)
+                     fputs("removing \(todoName) in \(name)\n", stderr)
                      // Remove todo
                      arrayOfStrings.remove(at: arrayOfStrings.firstIndex(of: todo)!);
                      let path:FilePath = FilePath.init(url.path);
@@ -157,9 +161,9 @@ public final class MDScanner {
                         rem.startDateComponents = date;
                         rem.alarms = [EKAlarm.init(relativeOffset: 0)]
                         try Store.save(rem, commit: true);
-                        fputs("Updated '\(rem.title!)' in \(name)", stderr)
-                        if (dateDifference) {fputs("Updated date for \(todoName) in \(name) to \(date?.date)", stderr)}
-                        else {fputs("Set isCompleted to \(isComplete)", stderr)}
+                        fputs("Updated '\(rem.title!)' in \(name)\n", stderr)
+                        if (dateDifference) {fputs("Updated date for \(todoName) in \(name) to \(date?.date)\n", stderr)}
+                        else {fputs("Set isCompleted to \(isComplete)\n", stderr)}
                      }
                   // Reminder updated more recently than file
                   } else {
@@ -191,7 +195,7 @@ public final class MDScanner {
                         let char = isComplete ? "x" : " ";
                         _ = try fd.writeAll(char.utf8);
                         if (isComplete == (todo.prefix(5) == "- [x]")) {
-                           fputs("Set isCompleted for \(todoName) in \(name) to \(isComplete)", stderr)
+                           fputs("Set isCompleted for \(todoName) in \(name) to \(isComplete)\n", stderr)
                         }
                      }
                      if (dateDifference) {
@@ -209,7 +213,7 @@ public final class MDScanner {
                               // Don't add newline if str is a newline, otherwise do
                               _ = try fd.writeAll((str + "\n").utf8);
                            }
-                           fputs("Updated date for \(todoName) in \(name) to \(date?.date)", stderr)
+                           fputs("Updated date for \(todoName) in \(name) to \(date?.date)\n", stderr)
                         }
                      }
                   }
@@ -233,7 +237,6 @@ public final class MDScanner {
                   // If todo is in previous record of todoNames (has it been deleted?)
                   if (urls.firstIndex(where: {$0.path == url.path}) != nil && urls[urls.firstIndex(where: {$0.path == url.path})!].todos.contains(String.SubSequence(rem.title))) {
                      // Remove todo
-                     fputs("Removing \(rem.title) in \(name)", stderr)
                      try Store.remove(rem, commit: true);
                   } else {
                      if (arrayOfStrings.firstIndex(of: section) == nil) {
@@ -249,7 +252,7 @@ public final class MDScanner {
                      let fd = try FileDescriptor.open(path, .readWrite, options: [.append]);
                      try fd.closeAfter {
                         _ = try fd.writeAll(remString.utf8);
-                        fputs("added \(rem.title!) with dateString \(dateString) to \(name)", stderr);
+                        fputs("added \(rem.title!) with dateString \(dateString) to \(name)\n", stderr);
                      }
                   }
                }
@@ -295,7 +298,10 @@ public final class MDScanner {
    }
    // Gets the date suffix if there is one, otherwise returns an empty string
    private func getDate(todo:String) -> String.SubSequence {
-     return todo.suffix(from: todo.index(todo.lastIndex(of: "–") ?? todo.index(todo.endIndex, offsetBy: -2), offsetBy: 2));
+      if (todo.lastIndex(of: "–") != nil) {
+        return todo.suffix(from: todo.index(todo.lastIndex(of: "–") ?? todo.index(todo.endIndex, offsetBy: -2), offsetBy: 2));
+      }
+      return "";
    }
    // Returns the todo without a date suffix, if there is one
    private func removeDate(todo:String) -> String.SubSequence {
@@ -306,7 +312,7 @@ public final class MDScanner {
    }
    // Remose - [ ] prefix and date suffix
    private func mapToNames(todos:[String])->[String.SubSequence]{
-      return todos.map({todo in
+      return todos.map({todo in  
          return removeDate(todo: String(todo.dropFirst(6)));
       })
    }

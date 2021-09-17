@@ -29,13 +29,32 @@ public final class MDScanner {
    var urls:[URLUpdates] = [];
    var cals:[ReminderUpdates] = [];
 
+   private func shell(_ command: String) -> String {
+         let task = Process()
+         let pipe = Pipe()
+         
+         task.standardOutput = pipe
+         task.standardError = pipe
+         task.arguments = ["-c", command]
+         task.launchPath = "/bin/zsh"
+         task.launch()
+         
+         let data = pipe.fileHandleForReading.readDataToEndOfFile()
+         let output = String(data: data, encoding: .utf8)!
+         
+         return output
+      }
+
    public func scan() {
       fputs("hi\n",stderr);
       reminders2.showLists();
       NotificationCenter.default.addObserver(self, selector: #selector(reloadModelData(notification:)), name: Notification.Name.EKEventStoreChanged, object: nil)
-      let timer = Timer(timeInterval: 1.0, target: self, selector: #selector(fire), userInfo: nil, repeats: true);
-      RunLoop.current.add(timer, forMode: .common)
-      RunLoop.current.run();
+      var text:String;
+      while (true) {
+         text = shell("fswatch -1 -e '*' -i '*.scan.md$' /Users/pascalvonfintel/Documents")
+         fputs("File notification:" + text+"\n", stderr);
+         fire()
+      }
       // scan2();
    }
    @objc private func reloadModelData(notification: NSNotification) {
@@ -58,27 +77,29 @@ public final class MDScanner {
       if (reminders2.returnListItems(withName: String("Do Not Delete")).count == 0) {
          return;
       }
-      let url = URL.init(fileURLWithPath: "/Users/pascalvonfintel/Documents/Personal Writings");
+      let folderUrls = [URL.init(fileURLWithPath: "/Users/pascalvonfintel/Documents/Personal Writings"),URL.init(fileURLWithPath: "/Users/pascalvonfintel/Documents/UMass")];
       // let url = Bundle.main.bundleURL;
       // fputs(url), stderr;
       let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey])
-      let directoryEnumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: Array(resourceKeys), options: .skipsHiddenFiles)!
- 
       var fileURLs: [URL] = []
-      let suffix = ".scan.test.md";
-      // Find all files with .scan.md in 'url'
-      for case let fileURL as URL in directoryEnumerator {
-         guard let resourceValues = try? fileURL.resourceValues(forKeys: resourceKeys),
-            let isDirectory = resourceValues.isDirectory,
-            let name = resourceValues.name
-            else {
-                  continue
-            }
-         
-         if !isDirectory {
-            if (name.suffix(suffix.count) == suffix) {
-               fileURLs.append(fileURL)
-               // fputs(name), stderr;
+      let suffix = ".scan.md";
+
+      for url in folderUrls {
+         let directoryEnumerator = FileManager.default.enumerator(at: url, includingPropertiesForKeys: Array(resourceKeys), options: .skipsHiddenFiles)!
+         // Find all files with .scan.md in 'url'
+         for case let fileURL as URL in directoryEnumerator {
+            guard let resourceValues = try? fileURL.resourceValues(forKeys: resourceKeys),
+               let isDirectory = resourceValues.isDirectory,
+               let name = resourceValues.name
+               else {
+                     continue
+               }
+            
+            if !isDirectory {
+               if (name.suffix(suffix.count) == suffix) {
+                  fileURLs.append(fileURL)
+                  // fputs(name), stderr;
+               }
             }
          }
       }

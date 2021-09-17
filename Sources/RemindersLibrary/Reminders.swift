@@ -16,6 +16,7 @@ private func format(_ reminder: EKReminder, at index: Int) -> String {
 
 public final class Reminders {
     public static func requestAccess() -> Bool {
+        // NOTE: If pm2 no longer has access, kill the process (ps aux | grep PM2, kill -9 [pid]), then resurrect
         let semaphore = DispatchSemaphore(value: 0)
         var grantedAccess = false
         Store.requestAccess(to: .reminder) { granted, _ in

@@ -68,6 +68,23 @@ private struct Complete: ParsableCommand {
     }
 }
 
+private struct Punt: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Punt a due date to next week")
+
+    @Argument(
+        help: "The list to complete a reminder on, see 'show-lists' for names")
+    var listName: String
+
+    @Argument(
+        help: "The index of the reminder to complete, see 'show' for indexes")
+    var indexes: [Int]
+
+    func run() {
+        reminders.punt(self.indexes, onListNamed: self.listName)
+    }
+}
+
 public struct CLI: ParsableCommand {
     public static let configuration = CommandConfiguration(
         commandName: "reminders",
@@ -75,6 +92,7 @@ public struct CLI: ParsableCommand {
         subcommands: [
             Add.self,
             Complete.self,
+            Punt.self,
             Show.self,
             ShowLists.self,
         ]

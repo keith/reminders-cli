@@ -74,12 +74,57 @@ public final class Reminders {
         semaphore.wait()
     }
 
+    func punt(_ indexes: [Int], onListNamed name: String) {
+        let calendar = self.calendar(withName: name)
+        let semaphore = DispatchSemaphore(value: 0)
+
+        // let nextWeekdayComponents = 
+
+        let cal = Calendar.current
+        let currentDay = cal.component(.weekday, from: Date())
+        var newDay = currentDay + 1
+        if newDay == 7 {
+            newDay = 2
+        }
+
+        // 1 sun
+        // 7 sat
+        // 6 -> 2
+        let newComponents = DateComponents(weekday: newDay)
+        let nextDate = cal.nextDate(after: Date(), matching: newComponents,
+                                    matchingPolicy: .strict)!
+        let newComp = cal.dateComponents([.day, .year, .month], from: nextDate)
+
+        self.reminders(onCalendar: calendar) { reminders in
+            for index in indexes {
+                guard let reminder = reminders[safe: index] else {
+                    print("No reminder at index \(index) on \(name)")
+                    exit(1)
+                }
+
+                do {
+                    reminder.dueDateComponents = newComp
+                    try Store.save(reminder, commit: true)
+                    print("Updated '\(reminder.title!)' due date to: TODO")
+                } catch let error {
+                    print("Failed to save reminder with error: \(error)")
+                    exit(1)
+                }
+            }
+
+            semaphore.signal()
+        }
+
+        semaphore.wait()
+    }
+
     func addReminder(string: String, toListNamed name: String, dueDate: DateComponents?) {
         let calendar = self.calendar(withName: name)
         let reminder = EKReminder(eventStore: Store)
         reminder.calendar = calendar
         reminder.title = string
         reminder.dueDateComponents = dueDate
+        // reminder.url = URL(string: "https://google.com")!
 
         do {
             try Store.save(reminder, commit: true)
@@ -104,12 +149,19 @@ public final class Reminders {
     }
 
     private func calendar(withName name: String) -> EKCalendar {
-        if let calendar = self.getCalendars().find(where: { $0.title.lowercased() == name.lowercased() }) {
+        let calendars = self.getCalendars()
+        if let calendar = calendars.find(where: { $0.title.lowercased() == name.lowercased() }) {
+            return calendar
+        } else if let calendar = calendars.find(where: { normalize($0.title) == normalize(name) }) {
             return calendar
         } else {
             print("No reminders list matching \(name)")
             exit(1)
         }
+    }
+
+    private func normalize(_ name: String) -> String {
+        return name.lowercased().replacingOccurrences(of: " ", with: "")
     }
 
     private func getCalendars() -> [EKCalendar] {

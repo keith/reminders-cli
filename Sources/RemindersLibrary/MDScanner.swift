@@ -48,14 +48,22 @@ public final class MDScanner {
    public func scan() {
       fputs("hi\n",stderr);
       reminders2.showLists();
-      NotificationCenter.default.addObserver(self, selector: #selector(reloadModelData(notification:)), name: Notification.Name.EKEventStoreChanged, object: nil)
-      var text:String;
-      while (true) {
-         text = shell("fswatch -1 -e '*' -i '*.scan.md$' /Users/pascalvonfintel/Documents")
-         fputs("File notification:" + text+"\n", stderr);
-         fire()
+      let queue = DispatchQueue(label: "com.mytask", attributes: .concurrent)
+      NotificationCenter.default.addObserver(self, selector: #selector(self.reloadModelData(notification:)), name: Notification.Name.EKEventStoreChanged, object: nil)         
+      watch(queue: queue);
+      RunLoop.current.run();
+
+   }
+
+   private func watch(queue:DispatchQueue) {
+      queue.async {
+         var text:String;
+         fputs("where", stderr);
+         text = self.shell("fswatch -1 -e '*' -i '*.scan.md$' /Users/pascalvonfintel/Documents")
+         fputs("File notification: " + text+"\n", stderr);
+         self.fire(notif: true)
+         self.watch(queue:queue);
       }
-      // scan2();
    }
    @objc private func reloadModelData(notification: NSNotification) {
       fputs("Recieved notification\n", stderr);
@@ -64,12 +72,6 @@ public final class MDScanner {
 
    @objc private func fire(notif:Bool = false) {
       scan2(notif: notif);
-      // for url in urls {
-      //    fputs(url, stderr)
-      // }
-      // for cal in cals {
-      //    fputs(cal, stderr)
-      // };
    }
 
    public func scan2(notif:Bool = false) {
@@ -77,7 +79,7 @@ public final class MDScanner {
       if (reminders2.returnListItems(withName: String("Do Not Delete")).count == 0) {
          return;
       }
-      let folderUrls = [URL.init(fileURLWithPath: "/Users/pascalvonfintel/Documents/Personal Writings"),URL.init(fileURLWithPath: "/Users/pascalvonfintel/Documents/UMass")];
+      let folderUrls = [URL.init(fileURLWithPath: "/Users/pascalvonfintel/Documents")];
       // let url = Bundle.main.bundleURL;
       // fputs(url), stderr;
       let resourceKeys = Set<URLResourceKey>([.nameKey, .isDirectoryKey])
@@ -191,6 +193,8 @@ public final class MDScanner {
                      // Determine whether to complete or uncomplete item
                      let isComplete = rem.isCompleted;
                      // Determine whether to update date
+                     // TODO: The fix to the relative date problem might just be getting rid of this section
+                     // Can test by setting dateDifference to true
                      var dateDifference:Bool;
                      if (rem.dueDateComponents != nil) {
                         // True if dates are different

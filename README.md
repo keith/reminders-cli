@@ -2,6 +2,8 @@
 
 A simple CLI for interacting with OS X reminders.
 
+Note: Under the branch scan-md-deadlines this fork scans markdown files ending in .scan.md and syncs them with corresponding reminders lists. At this time it's only set up for me, though I may soon make the necessary changes and instructions for others to use it
+
 ## Usage:
 
 #### Show all lists

@@ -1,6 +1,10 @@
 import ArgumentParser
 import Foundation
 
+enum Priority : String, ExpressibleByArgument {
+    case none, low, medium, high
+}
+
 private let reminders = Reminders()
 
 private struct ShowLists: ParsableCommand {
@@ -45,8 +49,8 @@ private struct Add: ParsableCommand {
     
     @Option(
         name: .shortAndLong,
-        help: "The priority of the reminder  [0: None, 4: High, 5: Medium, 6: Low]")
-    var priority: Int
+        help: "The priority of the reminder  [none, low, medium, high]")
+    var priority: Priority?
 
     func run() {
         reminders.addReminder(

@@ -80,11 +80,7 @@ public final class Reminders {
         reminder.calendar = calendar
         reminder.title = string
         reminder.dueDateComponents = dueDate
-        switch priority {
-            case .some(Priority.low): reminder.priority = 6
-            case .some(Priority.medium): reminder.priority = 5
-            case .some(Priority.high): reminder.priority = 4
-            default: reminder.priority = 0}
+        reminder.priority = (priority ?? Priority.none).value
 
         do {
             try Store.save(reminder, commit: true)

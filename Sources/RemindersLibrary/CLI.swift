@@ -3,7 +3,19 @@ import Foundation
 
 enum Priority : String, ExpressibleByArgument {
     case none, low, medium, high
+
+    var value: Int {
+        // these values have been obtained by trial and error
+        // they are subject to change as they are undocumented
+        switch self {
+            case .none: return 0
+            case .low: return 6
+            case .medium: return 5
+            case .high: return 4
+            }
+    }
 }
+
 
 private let reminders = Reminders()
 

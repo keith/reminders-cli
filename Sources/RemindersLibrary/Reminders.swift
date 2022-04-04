@@ -74,12 +74,13 @@ public final class Reminders {
         semaphore.wait()
     }
 
-    func addReminder(string: String, toListNamed name: String, dueDate: DateComponents?) {
+    func addReminder(string: String, toListNamed name: String, dueDate: DateComponents?, priority: Int) {
         let calendar = self.calendar(withName: name)
         let reminder = EKReminder(eventStore: Store)
         reminder.calendar = calendar
         reminder.title = string
         reminder.dueDateComponents = dueDate
+        reminder.priority = priority
 
         do {
             try Store.save(reminder, commit: true)

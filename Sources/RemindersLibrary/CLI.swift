@@ -42,12 +42,18 @@ private struct Add: ParsableCommand {
         name: .shortAndLong,
         help: "The date the reminder is due")
     var dueDate: DateComponents?
+    
+    @Option(
+        name: .shortAndLong,
+        help: "The priority of the reminder  [0: None, 4: High, 5: Medium, 6: Low]")
+    var priority: Int
 
     func run() {
         reminders.addReminder(
             string: self.reminder.joined(separator: " "),
             toListNamed: self.listName,
-            dueDate: self.dueDate)
+            dueDate: self.dueDate,
+            priority: self.priority)
     }
 }
 

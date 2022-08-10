@@ -16,6 +16,7 @@ private func format(_ reminder: EKReminder, at index: Int) -> String {
 
 public final class Reminders {
     public static func requestAccess() -> Bool {
+        // NOTE: If pm2 no longer has access, kill the process (ps aux | grep PM2, kill -9 [pid]), then resurrect
         let semaphore = DispatchSemaphore(value: 0)
         var grantedAccess = false
         Store.requestAccess(to: .reminder) { granted, _ in
@@ -30,7 +31,8 @@ public final class Reminders {
     func showLists() {
         let calendars = self.getCalendars()
         for calendar in calendars {
-            print(calendar.title)
+            // print(calendar.title);
+            fputs(calendar.title+"\n",stderr);
         }
     }
 
@@ -40,13 +42,30 @@ public final class Reminders {
 
         self.reminders(onCalendar: calendar) { reminders in
             for (i, reminder) in reminders.enumerated() {
-                print(format(reminder, at: i))
+                fputs(format(reminder, at: i), stderr);
+                // print(format(reminder, at: i))
             }
 
             semaphore.signal()
         }
 
         semaphore.wait()
+    }
+
+    func returnListItems(withName name: String) -> [EKReminder] {
+        let calendar = self.calendar(withName: name)
+        var remindersArray: [EKReminder] = [];
+        let semaphore = DispatchSemaphore(value: 0)
+        
+        self.allReminders(onCalendar: calendar) { reminders in
+            for (i, reminder) in reminders.enumerated() {
+                remindersArray.append(reminder);
+            }
+            semaphore.signal()
+
+        }
+        semaphore.wait()
+        return remindersArray;        
     }
 
     func complete(itemAtIndex index: Int, onListNamed name: String) {
@@ -74,12 +93,13 @@ public final class Reminders {
         semaphore.wait()
     }
 
-    func addReminder(string: String, toListNamed name: String, dueDate: DateComponents?) {
+    func addReminder(string: String, toListNamed name: String, isComplete:Bool = false, dueDate: DateComponents?) {
         let calendar = self.calendar(withName: name)
         let reminder = EKReminder(eventStore: Store)
         reminder.calendar = calendar
         reminder.title = string
         reminder.dueDateComponents = dueDate
+        reminder.isCompleted = isComplete;
         
         do {
             try Store.save(reminder, commit: true)
@@ -122,6 +142,10 @@ public final class Reminders {
         }
     }
 
+    func hasList (calendarName:String) -> Bool {
+      return self.getCalendars().find(where: { $0.title.lowercased() == calendarName.lowercased() }) != nil;
+    }
+
     // MARK: - Private functions
 
     private func reminders(onCalendar calendar: EKCalendar,
@@ -135,6 +159,17 @@ public final class Reminders {
         }
     }
 
+
+    // Includes completed reminders
+    private func allReminders(onCalendar calendar: EKCalendar,
+                                      completion: @escaping (_ reminders: [EKReminder]) -> Void)
+    {
+        let predicate = Store.predicateForReminders(in: [calendar])
+        Store.fetchReminders(matching: predicate) { reminders in
+            completion(reminders ?? [])
+        }
+    }
+
     private func calendar(withName name: String) -> EKCalendar {
         if let calendar = self.getCalendars().find(where: { $0.title.lowercased() == name.lowercased() }) {
             return calendar
@@ -144,7 +179,7 @@ public final class Reminders {
         }
     }
 
-    private func getCalendars() -> [EKCalendar] {
+    func getCalendars() -> [EKCalendar] {
         return Store.calendars(for: .reminder)
                     .filter { $0.allowsContentModifications }
     }

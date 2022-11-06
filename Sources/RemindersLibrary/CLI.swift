@@ -117,6 +117,30 @@ private struct Delete: ParsableCommand {
     }
 }
 
+private struct Edit: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Edit the text of a reminder")
+
+    @Argument(
+        help: "The list to edit a reminder on, see 'show-lists' for names")
+    var listName: String
+
+    @Argument(
+        help: "The index of the reminder to edit, see 'show' for indexes")
+    var index: Int
+
+    @Argument(
+        parsing: .remaining,
+        help: "The new reminder contents")
+    var reminder: [String]
+
+    func run() {
+        reminders.edit(itemAtIndex: self.index, onListNamed: self.listName,
+                       newText: self.reminder.joined(separator: " "))
+    }
+}
+
+
 private struct NewList: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Create a new list")
@@ -143,6 +167,7 @@ public struct CLI: ParsableCommand {
             Add.self,
             Complete.self,
             Delete.self,
+            Edit.self,
             Show.self,
             ShowLists.self,
             NewList.self,

@@ -1,4 +1,4 @@
-// swift-tools-version:5.3
+// swift-tools-version:5.5
 import PackageDescription
 
 let package = Package(
@@ -6,11 +6,14 @@ let package = Package(
     platforms: [
         .macOS(.v10_15)
     ],
+    products: [
+        .executable(name: "reminders", targets: ["reminders"]),
+    ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-argument-parser", .upToNextMinor(from: "0.3.0")),
+        .package(url: "https://github.com/apple/swift-argument-parser", .upToNextMinor(from: "1.1.4")),
     ],
     targets: [
-        .target(
+        .executableTarget(
             name: "reminders",
             dependencies: ["RemindersLibrary"]
         ),

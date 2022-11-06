@@ -20,13 +20,34 @@ private struct Show: ParsableCommand {
         help: "The list to print items from, see 'show-lists' for names")
     var listName: String
 
+    @Flag(help: "Show completed items only")
+    var onlyCompleted = false
+
+    @Flag(help: "Include completed items in output")
+    var includeCompleted = false
+
     @Option(
         name: .shortAndLong,
         help: "Show only reminders due on this date")
     var dueDate: DateComponents?
 
+    func validate() throws {
+        if self.onlyCompleted && self.includeCompleted {
+            throw ValidationError(
+                "Cannot specify both --show-completed and --only-completed")
+        }
+    }
+
     func run() {
-        reminders.showListItems(withName: self.listName, dueOn: self.dueDate)
+        var displayOptions = DisplayOptions.incomplete
+        if self.onlyCompleted {
+            displayOptions = .complete
+        } else if self.includeCompleted {
+            displayOptions = .all
+        }
+
+        reminders.showListItems(
+            withName: self.listName, dueOn: self.dueDate, displayOptions: displayOptions)
     }
 }
 

@@ -29,15 +29,33 @@ $ reminders show Soon
 0 Ship reminders-cli
 ```
 
+#### Delete an item on a list
+
+```
+$ reminders delete Soon 0
+Completed 'Write README'
+$ reminders show Soon
+0 Ship reminders-cli
+```
+
 #### Add a reminder to a list
 
 ```
 $ reminders add Soon Contribute to open source
 $ reminders add Soon Go to the grocery store --due-date "tomorrow 9am"
+$ reminders add Soon Something really important --priority high
 $ reminders show Soon
 0: Ship reminders-cli
 1: Contribute to open source
 2: Go to the grocery store (in 10 hours)
+3: Something really important (priority: high)
+```
+
+#### See help for more examples
+
+```
+$ reminders --help
+$ reminders show -h
 ```
 
 ## Installation:

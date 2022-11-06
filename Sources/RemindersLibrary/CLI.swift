@@ -20,8 +20,13 @@ private struct Show: ParsableCommand {
         help: "The list to print items from, see 'show-lists' for names")
     var listName: String
 
+    @Option(
+        name: .shortAndLong,
+        help: "Show only reminders due on this date")
+    var dueDate: DateComponents?
+
     func run() {
-        reminders.showListItems(withName: self.listName)
+        reminders.showListItems(withName: self.listName, dueOn: self.dueDate)
     }
 }
 

@@ -34,13 +34,26 @@ public final class Reminders {
         }
     }
 
-    func showListItems(withName name: String) {
-        let calendar = self.calendar(withName: name)
+    func showListItems(withName name: String, dueOn dueDate: DateComponents?) {
         let semaphore = DispatchSemaphore(value: 0)
+        let calendar = Calendar.current
 
-        self.reminders(onCalendar: calendar) { reminders in
+        self.reminders(onCalendar: self.calendar(withName: name)) { reminders in
             for (i, reminder) in reminders.enumerated() {
-                print(format(reminder, at: i))
+                guard let dueDate = dueDate?.date else {
+                    print(format(reminder, at: i))
+                    continue
+                }
+
+                guard let reminderDueDate = reminder.dueDateComponents?.date else {
+                    continue
+                }
+
+                let sameDay = calendar.compare(
+                    reminderDueDate, to: dueDate, toGranularity: .day) == .orderedSame
+                if sameDay {
+                    print(format(reminder, at: i))
+                }
             }
 
             semaphore.signal()

@@ -144,6 +144,31 @@ public final class Reminders {
         }
     }
 
+    func edit(itemAtIndex index: Int, onListNamed name: String, newText: String) {
+        let calendar = self.calendar(withName: name)
+        let semaphore = DispatchSemaphore(value: 0)
+
+        self.reminders(onCalendar: calendar, displayOptions: .incomplete) { reminders in
+            guard let reminder = reminders[safe: index] else {
+                print("No reminder at index \(index) on \(name)")
+                exit(1)
+            }
+
+            do {
+                reminder.title = newText
+                try Store.save(reminder, commit: true)
+                print("Updated reminder '\(reminder.title!)'")
+            } catch let error {
+                print("Failed to update reminder with error: \(error)")
+                exit(1)
+            }
+
+            semaphore.signal()
+        }
+
+        semaphore.wait()
+    }
+
     func complete(itemAtIndex index: Int, onListNamed name: String) {
         let calendar = self.calendar(withName: name)
         let semaphore = DispatchSemaphore(value: 0)

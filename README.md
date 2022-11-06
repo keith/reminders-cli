@@ -29,6 +29,16 @@ $ reminders show Soon
 0 Ship reminders-cli
 ```
 
+#### Edit an item on a list
+
+```
+$ reminders edit Soon 0 Some edited text
+Updated reminder 'Some edited text'
+$ reminders show Soon
+0 Ship reminders-cli
+1 Some edited text
+```
+
 #### Delete an item on a list
 
 ```

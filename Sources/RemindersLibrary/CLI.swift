@@ -17,7 +17,8 @@ private struct Show: ParsableCommand {
         abstract: "Print the items on the given list")
 
     @Argument(
-        help: "The list to print items from, see 'show-lists' for names")
+        help: "The list to print items from, see 'show-lists' for names",
+        completion: .custom(listNameCompletion))
     var listName: String
 
     @Flag(help: "Show completed items only")
@@ -56,7 +57,8 @@ private struct Add: ParsableCommand {
         abstract: "Add a reminder to a list")
 
     @Argument(
-        help: "The list to add to, see 'show-lists' for names")
+        help: "The list to add to, see 'show-lists' for names",
+        completion: .custom(listNameCompletion))
     var listName: String
 
     @Argument(
@@ -88,7 +90,8 @@ private struct Complete: ParsableCommand {
         abstract: "Complete a reminder")
 
     @Argument(
-        help: "The list to complete a reminder on, see 'show-lists' for names")
+        help: "The list to complete a reminder on, see 'show-lists' for names",
+        completion: .custom(listNameCompletion))
     var listName: String
 
     @Argument(
@@ -105,7 +108,8 @@ private struct Delete: ParsableCommand {
         abstract: "Delete a reminder")
 
     @Argument(
-        help: "The list to delete a reminder on, see 'show-lists' for names")
+        help: "The list to delete a reminder on, see 'show-lists' for names",
+        completion: .custom(listNameCompletion))
     var listName: String
 
     @Argument(
@@ -117,12 +121,19 @@ private struct Delete: ParsableCommand {
     }
 }
 
+func listNameCompletion(_ arguments: [String]) -> [String] {
+    // NOTE: A list name with ':' was separated in zsh completion, there might be more of these or
+    // this might break other shells
+    return reminders.getListNames().map { $0.replacingOccurrences(of: ":", with: "\\:") }
+}
+
 private struct Edit: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Edit the text of a reminder")
 
     @Argument(
-        help: "The list to edit a reminder on, see 'show-lists' for names")
+        help: "The list to edit a reminder on, see 'show-lists' for names",
+        completion: .custom(listNameCompletion))
     var listName: String
 
     @Argument(

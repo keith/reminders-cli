@@ -128,6 +128,30 @@ public final class Reminders {
         semaphore.wait()
     }
 
+    func delete(itemAtIndex index: Int, onListNamed name: String) {
+        let calendar = self.calendar(withName: name)
+        let semaphore = DispatchSemaphore(value: 0)
+
+        self.reminders(onCalendar: calendar, displayOptions: .incomplete) { reminders in
+            guard let reminder = reminders[safe: index] else {
+                print("No reminder at index \(index) on \(name)")
+                exit(1)
+            }
+
+            do {
+                try Store.remove(reminder, commit: true)
+                print("Deleted '\(reminder.title!)'")
+            } catch let error {
+                print("Failed to delete reminder with error: \(error)")
+                exit(1)
+            }
+
+            semaphore.signal()
+        }
+
+        semaphore.wait()
+    }
+
     func addReminder(string: String, toListNamed name: String, dueDate: DateComponents?, priority: Priority) {
         let calendar = self.calendar(withName: name)
         let reminder = EKReminder(eventStore: Store)

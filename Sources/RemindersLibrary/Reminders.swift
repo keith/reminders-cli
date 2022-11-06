@@ -68,10 +68,13 @@ public final class Reminders {
         return grantedAccess
     }
 
+    func getListNames() -> [String] {
+        return self.getCalendars().map { $0.title }
+    }
+
     func showLists() {
-        let calendars = self.getCalendars()
-        for calendar in calendars {
-            print(calendar.title)
+        for name in self.getListNames() {
+            print(name)
         }
     }
 

@@ -100,6 +100,23 @@ private struct Complete: ParsableCommand {
     }
 }
 
+private struct Delete: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Delete a reminder")
+
+    @Argument(
+        help: "The list to delete a reminder on, see 'show-lists' for names")
+    var listName: String
+
+    @Argument(
+        help: "The index of the reminder to delete, see 'show' for indexes")
+    var index: Int
+
+    func run() {
+        reminders.delete(itemAtIndex: self.index, onListNamed: self.listName)
+    }
+}
+
 public struct CLI: ParsableCommand {
     public static let configuration = CommandConfiguration(
         commandName: "reminders",
@@ -107,6 +124,7 @@ public struct CLI: ParsableCommand {
         subcommands: [
             Add.self,
             Complete.self,
+            Delete.self,
             Show.self,
             ShowLists.self,
         ]

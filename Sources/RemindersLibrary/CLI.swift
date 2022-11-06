@@ -12,6 +12,20 @@ private struct ShowLists: ParsableCommand {
     }
 }
 
+private struct ShowAll: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Print all reminders")
+
+    @Option(
+        name: .shortAndLong,
+        help: "Show only reminders due on this date")
+    var dueDate: DateComponents?
+
+    func run() {
+        reminders.showAllReminders(dueOn: self.dueDate)
+    }
+}
+
 private struct Show: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Print the items on the given list")
@@ -182,6 +196,7 @@ public struct CLI: ParsableCommand {
             Show.self,
             ShowLists.self,
             NewList.self,
+            ShowAll.self,
         ]
     )
 

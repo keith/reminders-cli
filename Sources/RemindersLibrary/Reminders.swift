@@ -103,6 +103,47 @@ public final class Reminders {
         semaphore.wait()
     }
 
+    func newList(with name: String, source requestedSourceName: String?) {
+        let store = EKEventStore()
+        let sources = store.sources
+        guard var source = sources.first else {
+            print("No existing list sources were found, please create a list in Reminders.app")
+            exit(1)
+        }
+
+        if let requestedSourceName = requestedSourceName {
+            guard let requestedSource = sources.first(where: { $0.title == requestedSourceName }) else
+            {
+                print("No source named '\(requestedSourceName)'")
+                exit(1)
+            }
+
+            source = requestedSource
+        } else {
+            let uniqueSources = Set(sources.map { $0.title })
+            if uniqueSources.count > 1 {
+                print("Multiple sources were found, please specify one with --source:")
+                for source in uniqueSources {
+                    print("  \(source)")
+                }
+
+                exit(1)
+            }
+        }
+
+        let newList = EKCalendar(for: .reminder, eventStore: store)
+        newList.title = name
+        newList.source = source
+
+        do {
+            try store.saveCalendar(newList, commit: true)
+            print("Created new list '\(newList.title)'!")
+        } catch let error {
+            print("Failed create new list with error: \(error)")
+            exit(1)
+        }
+    }
+
     func complete(itemAtIndex index: Int, onListNamed name: String) {
         let calendar = self.calendar(withName: name)
         let semaphore = DispatchSemaphore(value: 0)

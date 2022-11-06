@@ -117,6 +117,24 @@ private struct Delete: ParsableCommand {
     }
 }
 
+private struct NewList: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Create a new list")
+
+    @Argument(
+        help: "The name of the new list")
+    var listName: String
+
+    @Option(
+        name: .shortAndLong,
+        help: "The name of the source of the list, if all your lists use the same source it will default to that")
+    var source: String?
+
+    func run() {
+        reminders.newList(with: self.listName, source: self.source)
+    }
+}
+
 public struct CLI: ParsableCommand {
     public static let configuration = CommandConfiguration(
         commandName: "reminders",
@@ -127,6 +145,7 @@ public struct CLI: ParsableCommand {
             Delete.self,
             Show.self,
             ShowLists.self,
+            NewList.self,
         ]
     )
 

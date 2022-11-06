@@ -14,6 +14,12 @@ private func format(_ reminder: EKReminder, at index: Int) -> String {
     return "\(index): \(reminder.title ?? "<unknown>")\(dateString)"
 }
 
+public enum DisplayOptions: String, Decodable {
+    case all
+    case incomplete
+    case complete
+}
+
 public final class Reminders {
     public static func requestAccess() -> Bool {
         let semaphore = DispatchSemaphore(value: 0)
@@ -34,11 +40,11 @@ public final class Reminders {
         }
     }
 
-    func showListItems(withName name: String, dueOn dueDate: DateComponents?) {
+    func showListItems(withName name: String, dueOn dueDate: DateComponents?, displayOptions: DisplayOptions) {
         let semaphore = DispatchSemaphore(value: 0)
         let calendar = Calendar.current
 
-        self.reminders(onCalendar: self.calendar(withName: name)) { reminders in
+        self.reminders(onCalendar: self.calendar(withName: name), displayOptions: displayOptions) { reminders in
             for (i, reminder) in reminders.enumerated() {
                 guard let dueDate = dueDate?.date else {
                     print(format(reminder, at: i))
@@ -66,7 +72,7 @@ public final class Reminders {
         let calendar = self.calendar(withName: name)
         let semaphore = DispatchSemaphore(value: 0)
 
-        self.reminders(onCalendar: calendar) { reminders in
+        self.reminders(onCalendar: calendar, displayOptions: .incomplete) { reminders in
             guard let reminder = reminders[safe: index] else {
                 print("No reminder at index \(index) on \(name)")
                 exit(1)
@@ -106,13 +112,25 @@ public final class Reminders {
     // MARK: - Private functions
 
     private func reminders(onCalendar calendar: EKCalendar,
-                                      completion: @escaping (_ reminders: [EKReminder]) -> Void)
+                           displayOptions: DisplayOptions,
+                           completion: @escaping (_ reminders: [EKReminder]) -> Void)
     {
         let predicate = Store.predicateForReminders(in: [calendar])
         Store.fetchReminders(matching: predicate) { reminders in
             let reminders = reminders?
-                .filter { !$0.isCompleted }
+                .filter { self.shouldDisplay(reminder: $0, displayOptions: displayOptions) }
             completion(reminders ?? [])
+        }
+    }
+
+    private func shouldDisplay(reminder: EKReminder, displayOptions: DisplayOptions) -> Bool {
+        switch displayOptions {
+        case .all:
+            return true
+        case .incomplete:
+            return !reminder.isCompleted
+        case .complete:
+            return reminder.isCompleted
         }
     }
 

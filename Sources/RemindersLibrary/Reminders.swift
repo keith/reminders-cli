@@ -1,3 +1,4 @@
+import ArgumentParser
 import EventKit
 import Foundation
 
@@ -9,15 +10,49 @@ private func formattedDueDate(from reminder: EKReminder) -> String? {
     }
 }
 
+private extension EKReminder {
+    var mappedPriority: EKReminderPriority {
+        UInt(exactly: self.priority).flatMap(EKReminderPriority.init) ?? EKReminderPriority.none
+    }
+}
+
 private func format(_ reminder: EKReminder, at index: Int) -> String {
     let dateString = formattedDueDate(from: reminder).map { " (\($0))" } ?? ""
-    return "\(index): \(reminder.title ?? "<unknown>")\(dateString)"
+    let priorityString = Priority(reminder.mappedPriority).map { " (priority: \($0))" } ?? ""
+    return "\(index): \(reminder.title ?? "<unknown>")\(dateString)\(priorityString)"
 }
 
 public enum DisplayOptions: String, Decodable {
     case all
     case incomplete
     case complete
+}
+
+public enum Priority: String, ExpressibleByArgument {
+    case none
+    case low
+    case medium
+    case high
+
+    var value: EKReminderPriority {
+        switch self {
+            case .none: return .none
+            case .low: return .low
+            case .medium: return .medium
+            case .high: return .high
+        }
+    }
+
+    init?(_ priority: EKReminderPriority) {
+        switch priority {
+            case .none: return nil
+            case .low: self = .low
+            case .medium: self = .medium
+            case .high: self = .high
+        @unknown default:
+            return nil
+        }
+    }
 }
 
 public final class Reminders {
@@ -93,12 +128,13 @@ public final class Reminders {
         semaphore.wait()
     }
 
-    func addReminder(string: String, toListNamed name: String, dueDate: DateComponents?) {
+    func addReminder(string: String, toListNamed name: String, dueDate: DateComponents?, priority: Priority) {
         let calendar = self.calendar(withName: name)
         let reminder = EKReminder(eventStore: Store)
         reminder.calendar = calendar
         reminder.title = string
         reminder.dueDateComponents = dueDate
+        reminder.priority = Int(priority.value.rawValue)
 
         do {
             try Store.save(reminder, commit: true)

@@ -12,6 +12,30 @@ final class NaturalLanguageTests: XCTestCase {
         XCTAssertEqual(components, expectedComponents)
     }
 
+    func testTodayString() throws {
+        let components = try XCTUnwrap(DateComponents(argument: "today"))
+        let expectedComponents = Calendar.current.dateComponents(
+            calendarComponents(except: timeComponents), from: Date())
+
+        XCTAssertEqual(components, expectedComponents)
+    }
+
+    func testTodayNoon() throws {
+        let components = try XCTUnwrap(DateComponents(argument: "12:00"))
+        let today = try XCTUnwrap(Calendar.current.date(bySettingHour: 12, minute: 0, second: 0, of: Date()))
+        let expectedComponents = Calendar.current.dateComponents(calendarComponents(), from: today)
+
+        XCTAssertEqual(components, expectedComponents)
+    }
+
+    func testTonight() throws {
+        let components = try XCTUnwrap(DateComponents(argument: "tonight"))
+        let today = try XCTUnwrap(Calendar.current.date(bySettingHour: 19, minute: 0, second: 0, of: Date()))
+        let expectedComponents = Calendar.current.dateComponents(calendarComponents(), from: today)
+
+        XCTAssertEqual(components, expectedComponents)
+    }
+
     func testTomorrow() throws {
         let components = try XCTUnwrap(DateComponents(argument: "tomorrow"))
         let tomorrow = try XCTUnwrap(Calendar.current.date(byAdding: .day, value: 1, to: Date()))

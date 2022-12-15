@@ -28,15 +28,20 @@ private func components(from string: String) -> DateComponents? {
         return nil
     }
 
-    let timeZone = match.timeZone ?? .current
-    let parsedComponents = calendar.dateComponents(in: timeZone, from: date)
-    if let noon = calendar.date(bySettingHour: 12, minute: 0, second: 0, of: date),
-        calendar.compare(date, to: noon, toGranularity: .minute) == .orderedSame
-    {
-        return calendar.dateComponents(calendarComponents(except: timeComponents), from: date)
+    var includeTime = true
+    if match.responds(to: NSSelectorFromString("timeIsSignificant")) {
+        includeTime = match.value(forKey: "timeIsSignificant") as? Bool ?? true
+    } else {
+        print("warning: timeIsSignificant is not available, please report this to keith/reminders-cli")
     }
 
-    return parsedComponents
+    let timeZone = match.timeZone ?? .current
+    let parsedComponents = calendar.dateComponents(in: timeZone, from: date)
+    if includeTime {
+        return parsedComponents
+    } else {
+        return calendar.dateComponents(calendarComponents(except: timeComponents), from: date)
+    }
 }
 
 extension DateComponents: ExpressibleByArgument {

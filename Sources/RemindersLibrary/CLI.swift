@@ -6,9 +6,13 @@ private let reminders = Reminders()
 private struct ShowLists: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Print the name of lists to pass to other commands")
-
+    @Option(
+        name: .shortAndLong,
+        help: "format, one of 'plain', 'json', or 'plainWithIds'. 'plainWithIds' substitutes a reminder's external identifier in place of its index")
+    var format: OutputFormat = .plain
+    
     func run() {
-        reminders.showLists()
+        reminders.showLists(outputFormat: format)
     }
 }
 
@@ -20,9 +24,14 @@ private struct ShowAll: ParsableCommand {
         name: .shortAndLong,
         help: "Show only reminders due on this date")
     var dueDate: DateComponents?
-
+    
+    @Option(
+        name: .shortAndLong,
+        help: "format, one of 'plain', 'json', or 'plainWithIds'. 'plainWithIds' substitutes a reminder's external identifier in place of its index")
+    var format: OutputFormat = .plain
+    
     func run() {
-        reminders.showAllReminders(dueOn: self.dueDate)
+        reminders.showAllReminders(dueOn: self.dueDate, outputFormat: format)
     }
 }
 
@@ -45,7 +54,12 @@ private struct Show: ParsableCommand {
         name: .shortAndLong,
         help: "Show only reminders due on this date")
     var dueDate: DateComponents?
-
+    
+    @Option(
+        name: .shortAndLong,
+        help: "format, one of 'plain', 'json', or 'plainWithIds'. 'plainWithIds' substitutes a reminder's external identifier in place of its index")
+    var format: OutputFormat = .plain
+    
     func validate() throws {
         if self.onlyCompleted && self.includeCompleted {
             throw ValidationError(
@@ -62,7 +76,7 @@ private struct Show: ParsableCommand {
         }
 
         reminders.showListItems(
-            withName: self.listName, dueOn: self.dueDate, displayOptions: displayOptions)
+            withName: self.listName, dueOn: self.dueDate, displayOptions: displayOptions, outputFormat: format)
     }
 }
 
@@ -89,13 +103,19 @@ private struct Add: ParsableCommand {
         name: .shortAndLong,
         help: "The priority of the reminder")
     var priority: Priority = .none
+    
+    @Option(
+        name: .shortAndLong,
+        help: "format, one of 'plain', 'json', or 'plainWithIds'. 'plainWithIds' substitutes a reminder's external identifier in place of its index")
+    var format: OutputFormat = .plain
 
     func run() {
         reminders.addReminder(
             string: self.reminder.joined(separator: " "),
             toListNamed: self.listName,
             dueDate: self.dueDate,
-            priority: priority)
+            priority: priority,
+            outputFormat: format)
     }
 }
 
@@ -109,8 +129,8 @@ private struct Complete: ParsableCommand {
     var listName: String
 
     @Argument(
-        help: "The index of the reminder to complete, see 'show' for indexes")
-    var index: Int
+        help: "The index or id of the reminder to delete, see 'show' for indexes")
+    var index: String
 
     func run() {
         reminders.complete(itemAtIndex: self.index, onListNamed: self.listName)
@@ -127,8 +147,8 @@ private struct Delete: ParsableCommand {
     var listName: String
 
     @Argument(
-        help: "The index of the reminder to delete, see 'show' for indexes")
-    var index: Int
+        help: "The index or id of the reminder to delete, see 'show' for indexes")
+    var index: String
 
     func run() {
         reminders.delete(itemAtIndex: self.index, onListNamed: self.listName)
@@ -151,8 +171,8 @@ private struct Edit: ParsableCommand {
     var listName: String
 
     @Argument(
-        help: "The index of the reminder to edit, see 'show' for indexes")
-    var index: Int
+        help: "The index or id of the reminder to delete, see 'show' for indexes")
+    var index: String
 
     @Argument(
         parsing: .remaining,

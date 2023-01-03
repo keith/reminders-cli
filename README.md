@@ -94,5 +94,5 @@ This requires a recent Xcode installation.
 ```
 $ cd reminders-cli
 $ make build-release
-$ cp .build/release/reminders /usr/local/bin/reminders
+$ cp .build/apple/Products/Release/reminders /usr/local/bin/reminders
 ```

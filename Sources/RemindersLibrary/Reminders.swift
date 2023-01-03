@@ -48,19 +48,23 @@ struct ReminderData: Encodable {
     let recurrenceRules: [EKRecurrenceRule]?
 
     public func encode(to encoder: Encoder) throws {
+        func formattedDate(date: Date) -> String {
+            return date.formatted(Date.ISO8601FormatStyle())
+        }
+
         var container = encoder.container(keyedBy: CodingKeys.self)
 
         try container.encode(id, forKey: .id)
         try container.encode(calendarTitle, forKey: .calendarTitle)
         try container.encode(title, forKey: .title)
-        try container.encode(creationDate.map { $0.formatted(Date.ISO8601FormatStyle()) }, forKey: .creationDate)
-        try container.encode(lastModifiedDate.map { $0.formatted(Date.ISO8601FormatStyle()) }, forKey: .lastModifiedDate)
-        try container.encode(startDate.map { $0.formatted(Date.ISO8601FormatStyle()) }, forKey: .startDate)
-        try container.encode(dueDate.map { $0.formatted(Date.ISO8601FormatStyle()) }, forKey: .dueDate)
+        try container.encode(creationDate.map(formattedDate), forKey: .creationDate)
+        try container.encode(lastModifiedDate.map(formattedDate), forKey: .lastModifiedDate)
+        try container.encode(startDate.map(formattedDate), forKey: .startDate)
+        try container.encode(dueDate.map(formattedDate), forKey: .dueDate)
         try container.encode(notes, forKey: .notes)
         try container.encode(priority, forKey: .priority)
         try container.encode(isCompleted, forKey: .isCompleted)
-        try container.encode(completionDate.map { $0.formatted(Date.ISO8601FormatStyle()) }, forKey: .completionDate)
+        try container.encode(completionDate.map(formattedDate), forKey: .completionDate)
         // TODO: error: referencing instance method 'encode(_:forKey:)' on 'Array' requires that 'EKAlarm' conform to 'Encodable'
         //   Ref: https://developer.apple.com/documentation/eventkit/ekalarm
         // try container.encode(alarms, forKey: .alarms)

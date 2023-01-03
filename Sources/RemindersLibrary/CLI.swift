@@ -12,6 +12,18 @@ private struct ShowLists: ParsableCommand {
     }
 }
 
+private struct ExportAll: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Export all reminders as JSON")
+
+    @Flag(help: "Pretty print the JSON data")
+    var prettyPrint = false
+
+    func run() {
+        reminders.exportAllReminders(prettyPrint: self.prettyPrint)
+    }
+}
+
 private struct ShowAll: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Print all reminders")
@@ -197,6 +209,7 @@ public struct CLI: ParsableCommand {
             ShowLists.self,
             NewList.self,
             ShowAll.self,
+            ExportAll.self,
         ]
     )
 

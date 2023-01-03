@@ -16,6 +16,60 @@ private extension EKReminder {
     }
 }
 
+struct ReminderData: Encodable {
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case calendarTitle
+        case title
+        case creationDate
+        case lastModifiedDate
+        case startDate
+        case dueDate
+        case notes
+        case priority
+        case isCompleted
+        case completionDate
+        case alarms
+        case recurrenceRules
+    }
+
+    let id: String
+    let calendarTitle: String?
+    let title: String?
+    let creationDate: Date?
+    let lastModifiedDate: Date?
+    let startDate: Date?
+    let dueDate: Date?
+    let notes: String?
+    let priority: Int
+    let isCompleted: Bool
+    let completionDate: Date?
+    let alarms: [EKAlarm]?
+    let recurrenceRules: [EKRecurrenceRule]?
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        try container.encode(id, forKey: .id)
+        try container.encode(calendarTitle, forKey: .calendarTitle)
+        try container.encode(title, forKey: .title)
+        try container.encode(creationDate.map { $0.formatted(Date.ISO8601FormatStyle()) }, forKey: .creationDate)
+        try container.encode(lastModifiedDate.map { $0.formatted(Date.ISO8601FormatStyle()) }, forKey: .lastModifiedDate)
+        try container.encode(startDate.map { $0.formatted(Date.ISO8601FormatStyle()) }, forKey: .startDate)
+        try container.encode(dueDate.map { $0.formatted(Date.ISO8601FormatStyle()) }, forKey: .dueDate)
+        try container.encode(notes, forKey: .notes)
+        try container.encode(priority, forKey: .priority)
+        try container.encode(isCompleted, forKey: .isCompleted)
+        try container.encode(completionDate.map { $0.formatted(Date.ISO8601FormatStyle()) }, forKey: .completionDate)
+        // TODO: error: referencing instance method 'encode(_:forKey:)' on 'Array' requires that 'EKAlarm' conform to 'Encodable'
+        //   Ref: https://developer.apple.com/documentation/eventkit/ekalarm
+        // try container.encode(alarms, forKey: .alarms)
+        // TODO: error: referencing instance method 'encode(_:forKey:)' on 'Array' requires that 'EKRecurrenceRule' conform to 'Encodable'
+        //   Ref: https://developer.apple.com/documentation/eventkit/ekrecurrencerule
+        // try container.encode(recurrenceRules, forKey: .recurrenceRules)
+    }
+}
+
 private func format(_ reminder: EKReminder, at index: Int, listName: String? = nil) -> String {
     let dateString = formattedDueDate(from: reminder).map { " (\($0))" } ?? ""
     let priorityString = Priority(reminder.mappedPriority).map { " (priority: \($0))" } ?? ""
@@ -77,6 +131,52 @@ public final class Reminders {
         for name in self.getListNames() {
             print(name)
         }
+    }
+
+    func exportAllReminders(prettyPrint: Bool) {
+        let semaphore = DispatchSemaphore(value: 0)
+        let encoder = JSONEncoder()
+
+        if prettyPrint {
+            encoder.outputFormatting = .prettyPrinted
+        }
+
+        self.reminders(on: self.getCalendars(), displayOptions: .incomplete) { reminders in
+            let remindersByCalendarTitle = Dictionary(grouping: reminders) { reminder -> String in
+                return reminder.calendar?.title ?? "Unknown"
+            }
+
+            let mappedRemindersByCalendarTitle = remindersByCalendarTitle.mapValues { values in
+                values.map { reminder -> ReminderData in
+                    return ReminderData(
+                        id: reminder.calendarItemIdentifier,
+                        calendarTitle: reminder.calendar?.title,
+                        title: reminder.title,
+                        creationDate: reminder.creationDate,
+                        lastModifiedDate: reminder.lastModifiedDate,
+                        startDate: reminder.startDateComponents?.date,
+                        dueDate: reminder.dueDateComponents?.date,
+                        notes: reminder.notes,
+                        priority: reminder.priority,
+                        isCompleted: reminder.isCompleted,
+                        completionDate: reminder.completionDate,
+                        alarms: reminder.alarms,
+                        recurrenceRules: reminder.recurrenceRules
+                    )
+                }
+            }
+
+            do {
+                let data = try encoder.encode(mappedRemindersByCalendarTitle)
+                FileHandle.standardOutput.write(data)
+            } catch {
+                print(error)
+            }
+
+            semaphore.signal()
+        }
+
+        semaphore.wait()
     }
 
     func showAllReminders(dueOn dueDate: DateComponents?) {

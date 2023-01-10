@@ -90,9 +90,15 @@ private struct Add: ParsableCommand {
         help: "The priority of the reminder")
     var priority: Priority = .none
 
+    @Option(
+        name: .shortAndLong,
+        help: "The notes to add to the reminder")
+    var notes: String?
+
     func run() {
         reminders.addReminder(
             string: self.reminder.joined(separator: " "),
+            notes: self.notes,
             toListNamed: self.listName,
             dueDate: self.dueDate,
             priority: priority)

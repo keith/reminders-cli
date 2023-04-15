@@ -81,6 +81,7 @@ private func format(_ reminder: EKReminder, at index: Int, listName: String? = n
     let dateString = formattedDueDate(from: reminder).map { " (\($0))" } ?? ""
     let priorityString = Priority(reminder.mappedPriority).map { " (priority: \($0))" } ?? ""
     let listString = listName.map { "\($0): " } ?? ""
+    let notesString = reminder.notes.map { " (\($0))" } ?? ""
 
     var indexString = ""
     switch(outputFormat) {
@@ -90,7 +91,7 @@ private func format(_ reminder: EKReminder, at index: Int, listName: String? = n
         indexString = "\(index)"
     }
 
-    return "\(listString)\(indexString): \(reminder.title ?? "<unknown>")\(dateString)\(priorityString)"
+    return "\(listString)\(indexString): \(reminder.title ?? "<unknown>")\(notesString)\(dateString)\(priorityString)"
 }
 
 public enum OutputFormat: String, ExpressibleByArgument {
@@ -342,11 +343,19 @@ public final class Reminders {
         semaphore.wait()
     }
 
-    func addReminder(string: String, toListNamed name: String, dueDate: DateComponents?, priority: Priority, outputFormat: OutputFormat) {
+    func addReminder(
+        string: String,
+        notes: String?,
+        toListNamed name: String,
+        dueDate: DateComponents?,
+        priority: Priority,
+        outputFormat: OutputFormat)
+    {
         let calendar = self.calendar(withName: name)
         let reminder = EKReminder(eventStore: Store)
         reminder.calendar = calendar
         reminder.title = string
+        reminder.notes = notes
         reminder.dueDateComponents = dueDate
         reminder.priority = Int(priority.value.rawValue)
 

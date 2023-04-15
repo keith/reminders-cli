@@ -109,9 +109,15 @@ private struct Add: ParsableCommand {
         help: "format, one of 'plain', 'json', or 'plainWithIds'. 'plainWithIds' substitutes a reminder's external identifier in place of its index")
     var format: OutputFormat = .plain
 
+    @Option(
+        name: .shortAndLong,
+        help: "The notes to add to the reminder")
+    var notes: String?
+
     func run() {
         reminders.addReminder(
             string: self.reminder.joined(separator: " "),
+            notes: self.notes,
             toListNamed: self.listName,
             dueDate: self.dueDate,
             priority: priority,

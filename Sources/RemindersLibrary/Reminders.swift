@@ -16,12 +16,13 @@ private extension EKReminder {
     }
 }
 
-private func format(_ reminder: EKReminder, at index: Int, listName: String? = nil) -> String {
+private func format(_ reminder: EKReminder, at index: Int?, listName: String? = nil) -> String {
     let dateString = formattedDueDate(from: reminder).map { " (\($0))" } ?? ""
     let priorityString = Priority(reminder.mappedPriority).map { " (priority: \($0))" } ?? ""
     let listString = listName.map { "\($0): " } ?? ""
     let notesString = reminder.notes.map { " (\($0))" } ?? ""
-    return "\(listString)\(index): \(reminder.title ?? "<unknown>")\(notesString)\(dateString)\(priorityString)"
+    let indexString = index.map { "\($0): " } ?? ""
+    return "\(listString)\(indexString)\(reminder.title ?? "<unknown>")\(notesString)\(dateString)\(priorityString)"
 }
 
 public enum OutputFormat: String, ExpressibleByArgument {
@@ -128,15 +129,19 @@ public final class Reminders {
         semaphore.wait()
     }
 
-    func showListItems(withName name: String, dueOn dueDate: DateComponents?, displayOptions: DisplayOptions, outputFormat: OutputFormat) {
+    func showListItems(withName name: String, dueOn dueDate: DateComponents?, displayOptions: DisplayOptions,
+                       outputFormat: OutputFormat, sort: Sort, sortOrder: CustomSortOrder)
+    {
         let semaphore = DispatchSemaphore(value: 0)
         let calendar = Calendar.current
 
         self.reminders(on: [self.calendar(withName: name)], displayOptions: displayOptions) { reminders in
-            var matchingReminders = [(EKReminder, Int)]()
+            var matchingReminders = [(EKReminder, Int?)]()
+            let reminders = sort == .none ? reminders : reminders.sorted(by: sort.sortFunction(order: sortOrder))
             for (i, reminder) in reminders.enumerated() {
+                let index = sort == .none ? i : nil
                 guard let dueDate = dueDate?.date else {
-                    matchingReminders.append((reminder, i))
+                    matchingReminders.append((reminder, index))
                     continue
                 }
 
@@ -147,7 +152,7 @@ public final class Reminders {
                 let sameDay = calendar.compare(
                     reminderDueDate, to: dueDate, toGranularity: .day) == .orderedSame
                 if sameDay {
-                    matchingReminders.append((reminder, i))
+                    matchingReminders.append((reminder, index))
                 }
             }
 

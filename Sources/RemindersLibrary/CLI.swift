@@ -52,6 +52,16 @@ private struct Show: ParsableCommand {
 
     @Option(
         name: .shortAndLong,
+        help: "Show the reminders in a specific order, one of: \(Sort.commaSeparatedCases)")
+    var sort: Sort = .none
+
+    @Option(
+        name: [.customShort("o"), .long],
+        help: "How the sort order should be applied, one of: \(CustomSortOrder.commaSeparatedCases)")
+    var sortOrder: CustomSortOrder = .ascending
+
+    @Option(
+        name: .shortAndLong,
         help: "Show only reminders due on this date")
     var dueDate: DateComponents?
 
@@ -76,7 +86,8 @@ private struct Show: ParsableCommand {
         }
 
         reminders.showListItems(
-            withName: self.listName, dueOn: self.dueDate, displayOptions: displayOptions, outputFormat: format)
+            withName: self.listName, dueOn: self.dueDate, displayOptions: displayOptions,
+            outputFormat: format, sort: sort, sortOrder: sortOrder)
     }
 }
 

@@ -8,9 +8,9 @@ private struct ShowLists: ParsableCommand {
         abstract: "Print the name of lists to pass to other commands")
     @Option(
         name: .shortAndLong,
-        help: "format, one of 'plain', 'json', or 'plainWithIds'. 'plainWithIds' substitutes a reminder's external identifier in place of its index")
+        help: "format, either of 'plain' or 'json'")
     var format: OutputFormat = .plain
-    
+
     func run() {
         reminders.showLists(outputFormat: format)
     }
@@ -24,12 +24,12 @@ private struct ShowAll: ParsableCommand {
         name: .shortAndLong,
         help: "Show only reminders due on this date")
     var dueDate: DateComponents?
-    
+
     @Option(
         name: .shortAndLong,
-        help: "format, one of 'plain', 'json', or 'plainWithIds'. 'plainWithIds' substitutes a reminder's external identifier in place of its index")
+        help: "format, either of 'plain' or 'json'")
     var format: OutputFormat = .plain
-    
+
     func run() {
         reminders.showAllReminders(dueOn: self.dueDate, outputFormat: format)
     }
@@ -54,12 +54,12 @@ private struct Show: ParsableCommand {
         name: .shortAndLong,
         help: "Show only reminders due on this date")
     var dueDate: DateComponents?
-    
+
     @Option(
         name: .shortAndLong,
-        help: "format, one of 'plain', 'json', or 'plainWithIds'. 'plainWithIds' substitutes a reminder's external identifier in place of its index")
+        help: "format, either of 'plain' or 'json'")
     var format: OutputFormat = .plain
-    
+
     func validate() throws {
         if self.onlyCompleted && self.includeCompleted {
             throw ValidationError(
@@ -103,10 +103,10 @@ private struct Add: ParsableCommand {
         name: .shortAndLong,
         help: "The priority of the reminder")
     var priority: Priority = .none
-    
+
     @Option(
         name: .shortAndLong,
-        help: "format, one of 'plain', 'json', or 'plainWithIds'. 'plainWithIds' substitutes a reminder's external identifier in place of its index")
+        help: "format, either of 'plain' or 'json'")
     var format: OutputFormat = .plain
 
     @Option(

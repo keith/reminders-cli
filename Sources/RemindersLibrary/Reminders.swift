@@ -212,7 +212,7 @@ public final class Reminders {
         }
     }
 
-    func edit(itemAtIndex index: String, onListNamed name: String, newText: String) {
+    func edit(itemAtIndex index: String, onListNamed name: String, newText: String?, newNotes: String?) {
         let calendar = self.calendar(withName: name)
         let semaphore = DispatchSemaphore(value: 0)
 
@@ -223,7 +223,12 @@ public final class Reminders {
             }
 
             do {
-                reminder.title = newText
+                if let newText = newText {
+                    reminder.title = newText
+                }
+                if let newNotes = newNotes {
+                    reminder.notes = newNotes
+                }
                 try Store.save(reminder, commit: true)
                 print("Updated reminder '\(reminder.title!)'")
             } catch let error {

@@ -150,7 +150,25 @@ private struct Complete: ParsableCommand {
     var index: String
 
     func run() {
-        reminders.complete(itemAtIndex: self.index, onListNamed: self.listName)
+        reminders.complete(itemAtIndex: self.index, onListNamed: self.listName, isCompleted:true)
+    }
+}
+
+private struct Uncomplete: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Uncomplete a reminder")
+
+    @Argument(
+        help: "The list to uncomplete a reminder on, see 'show-lists' for names",
+        completion: .custom(listNameCompletion))
+    var listName: String
+
+    @Argument(
+        help: "The index or id of the reminder to delete, see 'show' for indexes")
+    var index: String
+
+    func run() {
+        reminders.complete(itemAtIndex: self.index, onListNamed: self.listName, isCompleted:false)
     }
 }
 
@@ -228,6 +246,7 @@ public struct CLI: ParsableCommand {
         subcommands: [
             Add.self,
             Complete.self,
+            Uncomplete.self,
             Delete.self,
             Edit.self,
             Show.self,

@@ -237,20 +237,27 @@ public final class Reminders {
         semaphore.wait()
     }
 
-    func complete(itemAtIndex index: String, onListNamed name: String) {
+    func complete(itemAtIndex index: String, onListNamed name: String, isCompleted :Bool) {
         let calendar = self.calendar(withName: name)
         let semaphore = DispatchSemaphore(value: 0)
+        var displayOptions = DisplayOptions.incomplete
+        var message = "Completed"
 
-        self.reminders(on: [calendar], displayOptions: .incomplete) { reminders in
+        if isCompleted == false {
+            displayOptions = DisplayOptions.complete
+            message = "Uncompleted"
+        }
+
+        self.reminders(on: [calendar], displayOptions: displayOptions) { reminders in
             guard let reminder = self.getReminder(from: reminders, at: index) else {
                 print("No reminder at index \(index) on \(name)")
                 exit(1)
             }
 
             do {
-                reminder.isCompleted = true
+                reminder.isCompleted = isCompleted
                 try Store.save(reminder, commit: true)
-                print("Completed '\(reminder.title!)'")
+                print("\(message) '\(reminder.title!)'")
             } catch let error {
                 print("Failed to save reminder with error: \(error)")
                 exit(1)

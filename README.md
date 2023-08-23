@@ -29,6 +29,17 @@ $ reminders show Soon
 0 Ship reminders-cli
 ```
 
+#### Undo a completed item
+
+```
+$ reminders show Soon --only-completed
+0 Write README
+$ reminders uncomplete Soon 0
+Uncompleted 'Write README'
+$ reminders show Soon
+0 Write README
+```
+
 #### Edit an item on a list
 
 ```

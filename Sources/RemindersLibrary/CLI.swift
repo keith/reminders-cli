@@ -150,7 +150,7 @@ private struct Complete: ParsableCommand {
     var index: String
 
     func run() {
-        reminders.complete(itemAtIndex: self.index, onListNamed: self.listName, isCompleted:true)
+        reminders.setComplete(true, itemAtIndex: self.index, onListNamed: self.listName)
     }
 }
 
@@ -168,7 +168,7 @@ private struct Uncomplete: ParsableCommand {
     var index: String
 
     func run() {
-        reminders.complete(itemAtIndex: self.index, onListNamed: self.listName, isCompleted:false)
+        reminders.setComplete(false, itemAtIndex: self.index, onListNamed: self.listName)
     }
 }
 

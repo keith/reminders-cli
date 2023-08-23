@@ -212,11 +212,21 @@ private struct Edit: ParsableCommand {
     @Argument(
         parsing: .remaining,
         help: "The new reminder contents")
-    var reminder: [String]
+    var reminder: [String] = []
+
+    @Option(
+        name: .shortAndLong,
+        help: "The new notes")
+    var notes: String?
 
     func run() {
-        reminders.edit(itemAtIndex: self.index, onListNamed: self.listName,
-                       newText: self.reminder.joined(separator: " "))
+        let newText = self.reminder.joined(separator: " ")
+        reminders.edit(
+            itemAtIndex: self.index,
+            onListNamed: self.listName,
+            newText: newText.isEmpty ? nil : newText,
+            newNotes: self.notes
+        )
     }
 }
 

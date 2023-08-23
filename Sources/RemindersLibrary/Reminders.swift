@@ -222,18 +222,9 @@ public final class Reminders {
                 exit(1)
             }
 
-            if newText == nil && newNotes == nil {
-                print("Nothing to update")
-                exit(1)
-            }
-
             do {
-                if let newText = newText {
-                    reminder.title = newText
-                }
-                if let newNotes = newNotes {
-                    reminder.notes = newNotes
-                }
+                reminder.title = newText ?? reminder.title
+                reminder.notes = newNotes ?? reminder.notes
                 try Store.save(reminder, commit: true)
                 print("Updated reminder '\(reminder.title!)'")
             } catch let error {

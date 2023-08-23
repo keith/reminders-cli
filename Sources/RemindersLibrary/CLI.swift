@@ -209,15 +209,21 @@ private struct Edit: ParsableCommand {
         help: "The index or id of the reminder to delete, see 'show' for indexes")
     var index: String
 
+    @Option(
+        name: .shortAndLong,
+        help: "The notes to set on the reminder, overwriting previous notes")
+    var notes: String?
+
     @Argument(
         parsing: .remaining,
         help: "The new reminder contents")
     var reminder: [String] = []
 
-    @Option(
-        name: .shortAndLong,
-        help: "The new notes")
-    var notes: String?
+    func validate() throws {
+        if self.reminder.isEmpty && self.notes == nil {
+            throw ValidationError("Must specify either new reminder content or new notes")
+        }
+    }
 
     func run() {
         let newText = self.reminder.joined(separator: " ")

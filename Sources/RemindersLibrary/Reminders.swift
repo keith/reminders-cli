@@ -90,11 +90,12 @@ public final class Reminders {
         }
     }
 
-    func showAllReminders(dueOn dueDate: DateComponents?, outputFormat: OutputFormat) {
+    func showAllReminders(dueOn dueDate: DateComponents?,
+                          displayOptions: DisplayOptions, outputFormat: OutputFormat) {
         let semaphore = DispatchSemaphore(value: 0)
         let calendar = Calendar.current
 
-        self.reminders(on: self.getCalendars(), displayOptions: .incomplete) { reminders in
+        self.reminders(on: self.getCalendars(), displayOptions: displayOptions) { reminders in
             var matchingReminders = [(EKReminder, Int, String)]()
             for (i, reminder) in reminders.enumerated() {
                 let listName = reminder.calendar.title

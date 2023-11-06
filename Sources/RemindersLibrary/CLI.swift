@@ -19,6 +19,12 @@ private struct ShowLists: ParsableCommand {
 private struct ShowAll: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Print all reminders")
+    
+    @Flag(help: "Show completed items only")
+    var onlyCompleted = false
+
+    @Flag(help: "Include completed items in output")
+    var includeCompleted = false
 
     @Option(
         name: .shortAndLong,
@@ -30,8 +36,23 @@ private struct ShowAll: ParsableCommand {
         help: "format, either of 'plain' or 'json'")
     var format: OutputFormat = .plain
 
+    func validate() throws {
+        if self.onlyCompleted && self.includeCompleted {
+            throw ValidationError(
+                "Cannot specify both --show-completed and --only-completed")
+        }
+    }
+    
     func run() {
-        reminders.showAllReminders(dueOn: self.dueDate, outputFormat: format)
+        var displayOptions = DisplayOptions.incomplete
+        if self.onlyCompleted {
+            displayOptions = .complete
+        } else if self.includeCompleted {
+            displayOptions = .all
+        }
+        
+        reminders.showAllReminders(
+            dueOn: self.dueDate, displayOptions: displayOptions, outputFormat: format)
     }
 }
 

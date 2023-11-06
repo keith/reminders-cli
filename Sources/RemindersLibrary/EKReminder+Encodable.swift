@@ -7,6 +7,7 @@ extension EKReminder: Encodable {
         case notes
         case url
         case location
+        case locationTitle
         case completionDate
         case isCompleted
         case priority
@@ -23,24 +24,37 @@ extension EKReminder: Encodable {
         try container.encode(self.priority, forKey: .priority)
         try container.encode(self.calendar.title, forKey: .list)
         try container.encodeIfPresent(self.notes, forKey: .notes)
+        
+        // url field is nil
+        // https://developer.apple.com/forums/thread/128140
         try container.encodeIfPresent(self.url, forKey: .url)
-        try container.encodeIfPresent(self.location, forKey: .location)
-        try container.encodeIfPresent(self.completionDate, forKey: .completionDate)
+        try container.encodeIfPresent(format(self.completionDate), forKey: .completionDate)
 
-        if let startDateComponents = self.startDateComponents {
-            if #available(macOS 12.0, *) {
-                try container.encode(startDateComponents.date?.ISO8601Format(), forKey: .startDate)
-            } else {
-                try container.encode(startDateComponents.date?.description(with: .current), forKey: .startDate)
+        for alarm in self.alarms ?? [] {
+            if let location = alarm.structuredLocation {
+                try container.encodeIfPresent(location.title, forKey: .locationTitle)
+                if let geoLocation = location.geoLocation {
+                    let geo = "\(geoLocation.coordinate.latitude), \(geoLocation.coordinate.longitude)"
+                    try container.encode(geo, forKey: .location)
+                }
+                break
             }
         }
 
+        if let startDateComponents = self.startDateComponents {
+            try container.encodeIfPresent(format(startDateComponents.date), forKey: .startDate)
+        }
+
         if let dueDateComponents = self.dueDateComponents {
-            if #available(macOS 12.0, *) {
-                try container.encode(dueDateComponents.date?.ISO8601Format(), forKey: .dueDate)
-            } else {
-                try container.encode(dueDateComponents.date?.description(with: .current), forKey: .dueDate)
-            }
+            try container.encodeIfPresent(format(dueDateComponents.date), forKey: .dueDate)
+        }
+    }
+    
+    private func format(_ date: Date?) -> String? {
+        if #available(macOS 12.0, *) {
+            return date?.ISO8601Format()
+        } else {
+            return date?.description(with: .current)
         }
     }
 }

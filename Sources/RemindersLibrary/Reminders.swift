@@ -63,16 +63,26 @@ public enum Priority: String, ExpressibleByArgument {
 }
 
 public final class Reminders {
-    public static func requestAccess() -> Bool {
+    public static func requestAccess() -> (Bool, Error?) {
         let semaphore = DispatchSemaphore(value: 0)
         var grantedAccess = false
-        Store.requestAccess(to: .reminder) { granted, _ in
-            grantedAccess = granted
-            semaphore.signal()
+        var returnError: Error? = nil
+        if #available(macOS 14.0, *) {
+            Store.requestFullAccessToReminders { granted, error in
+                grantedAccess = granted
+                returnError = error
+                semaphore.signal()
+            }
+        } else {
+            Store.requestAccess(to: .reminder) { granted, error in
+                grantedAccess = granted
+                returnError = error
+                semaphore.signal()
+            }
         }
 
         semaphore.wait()
-        return grantedAccess
+        return (grantedAccess, returnError)
     }
 
     func getListNames() -> [String] {

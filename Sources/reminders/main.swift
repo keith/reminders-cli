@@ -1,9 +1,13 @@
 import Darwin
 import RemindersLibrary
 
-if Reminders.requestAccess() {
+switch Reminders.requestAccess() {
+case (true, _):
     CLI.main()
-} else {
-    print("You need to grant reminders access")
+case (false, let error):
+    print("error: you need to grant reminders access")
+    if let error {
+        print("error: \(error.localizedDescription)")
+    }
     exit(1)
 }

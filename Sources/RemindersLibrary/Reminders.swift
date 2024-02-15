@@ -305,7 +305,7 @@ public final class Reminders {
         string: String,
         notes: String?,
         toListNamed name: String,
-        dueDate: DateComponents?,
+        dueDateComponents: DateComponents?,
         priority: Priority,
         outputFormat: OutputFormat)
     {
@@ -314,8 +314,11 @@ public final class Reminders {
         reminder.calendar = calendar
         reminder.title = string
         reminder.notes = notes
-        reminder.dueDateComponents = dueDate
+        reminder.dueDateComponents = dueDateComponents
         reminder.priority = Int(priority.value.rawValue)
+        if let dueDate = dueDateComponents?.date {
+            reminder.addAlarm(EKAlarm(absoluteDate: dueDate))
+        }
 
         do {
             try Store.save(reminder, commit: true)

@@ -19,7 +19,7 @@ private struct ShowLists: ParsableCommand {
 private struct ShowAll: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Print all reminders")
-    
+
     @Flag(help: "Show completed items only")
     var onlyCompleted = false
 
@@ -42,7 +42,7 @@ private struct ShowAll: ParsableCommand {
                 "Cannot specify both --show-completed and --only-completed")
         }
     }
-    
+
     func run() {
         var displayOptions = DisplayOptions.incomplete
         if self.onlyCompleted {
@@ -50,7 +50,7 @@ private struct ShowAll: ParsableCommand {
         } else if self.includeCompleted {
             displayOptions = .all
         }
-        
+
         reminders.showAllReminders(
             dueOn: self.dueDate, displayOptions: displayOptions, outputFormat: format)
     }
@@ -151,7 +151,7 @@ private struct Add: ParsableCommand {
             string: self.reminder.joined(separator: " "),
             notes: self.notes,
             toListNamed: self.listName,
-            dueDate: self.dueDate,
+            dueDateComponents: self.dueDate,
             priority: priority,
             outputFormat: format)
     }

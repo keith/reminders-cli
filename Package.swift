@@ -10,7 +10,7 @@ let package = Package(
         .executable(name: "reminders", targets: ["reminders"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-argument-parser", .upToNextMinor(from: "1.1.4")),
+        .package(url: "https://github.com/apple/swift-argument-parser", .upToNextMinor(from: "1.3.1")),
     ],
     targets: [
         .executableTarget(

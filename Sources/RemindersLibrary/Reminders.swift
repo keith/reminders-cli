@@ -316,7 +316,7 @@ public final class Reminders {
         reminder.notes = notes
         reminder.dueDateComponents = dueDateComponents
         reminder.priority = Int(priority.value.rawValue)
-        if let dueDate = dueDateComponents?.date {
+        if let dueDate = dueDateComponents?.date, dueDateComponents?.hour != nil {
             reminder.addAlarm(EKAlarm(absoluteDate: dueDate))
         }
 

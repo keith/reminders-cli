@@ -3,6 +3,8 @@ import EventKit
 extension EKReminder: Encodable {
     private enum EncodingKeys: String, CodingKey {
         case externalId
+        case lastModified
+        case creationDate
         case title
         case notes
         case url
@@ -47,6 +49,14 @@ extension EKReminder: Encodable {
 
         if let dueDateComponents = self.dueDateComponents {
             try container.encodeIfPresent(format(dueDateComponents.date), forKey: .dueDate)
+        }
+        
+        if let lastModifiedDate = self.lastModifiedDate {
+            try container.encode(format(lastModifiedDate), forKey: .lastModified)
+        }
+        
+        if let creationDate = self.creationDate {
+            try container.encode(format(creationDate), forKey: .creationDate)
         }
     }
     

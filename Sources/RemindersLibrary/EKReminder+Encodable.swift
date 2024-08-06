@@ -16,6 +16,7 @@ extension EKReminder: Encodable {
         case startDate
         case dueDate
         case list
+        case hasRecurrenceRules
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -26,7 +27,7 @@ extension EKReminder: Encodable {
         try container.encode(self.priority, forKey: .priority)
         try container.encode(self.calendar.title, forKey: .list)
         try container.encodeIfPresent(self.notes, forKey: .notes)
-        
+        try container.encode(self.hasRecurrenceRules, forKey: .hasRecurrenceRules)
         // url field is nil
         // https://developer.apple.com/forums/thread/128140
         try container.encodeIfPresent(self.url, forKey: .url)

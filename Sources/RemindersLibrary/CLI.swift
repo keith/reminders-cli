@@ -148,7 +148,7 @@ private struct Add: ParsableCommand {
         reminders.addReminder(
             string: self.reminder.joined(separator: " "),
             notes: self.notes,
-            toListNamed: self.listNameOrId,
+            toListNameOrId: self.listNameOrId,
             dueDateComponents: self.dueDate,
             priority: priority,
             outputFormat: format)

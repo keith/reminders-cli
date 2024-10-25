@@ -311,12 +311,12 @@ public final class Reminders {
     func addReminder(
         string: String,
         notes: String?,
-        toListNamed name: String,
+        toListNameOrId nameOrId: String,
         dueDateComponents: DateComponents?,
         priority: Priority,
         outputFormat: OutputFormat)
     {
-        let calendar = self.calendar(withNameOrId: name)
+        let calendar = self.calendar(withNameOrId: nameOrId)
         let reminder = EKReminder(eventStore: Store)
         reminder.calendar = calendar
         reminder.title = string
@@ -331,14 +331,14 @@ public final class Reminders {
 
         do {
             try Store.save(reminder, commit: true)
-            switch (outputFormat) {
+            switch outputFormat {
             case .json:
                 print(encodeToJson(data: reminder))
-            default:
-                print("Added '\(reminder.title!)' to '\(calendar.title)'")
+            case .plain:
+                print("Added reminder '\(reminder.title!)' to list '\(calendar.title)'")
             }
         } catch let error {
-            print("Failed to save reminder with error: \(error)")
+            print("Failed to add reminder with error: \(error)")
             exit(1)
         }
     }

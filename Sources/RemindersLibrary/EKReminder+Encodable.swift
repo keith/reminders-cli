@@ -14,6 +14,7 @@ extension EKReminder: @retroactive Encodable {
         case startDate
         case dueDate
         case list
+        case listId
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -23,6 +24,7 @@ extension EKReminder: @retroactive Encodable {
         try container.encode(self.isCompleted, forKey: .isCompleted)
         try container.encode(self.priority, forKey: .priority)
         try container.encode(self.calendar.title, forKey: .list)
+        try container.encode(self.calendar.calendarIdentifier, forKey: .listId)
         try container.encodeIfPresent(self.notes, forKey: .notes)
 
         // url field is nil

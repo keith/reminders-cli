@@ -167,8 +167,15 @@ private struct Complete: ParsableCommand {
         help: "The index or id of the reminder to delete, see 'show' for indexes and IDs")
     var indexOrId: String
 
+    @Option(
+        name: .shortAndLong,
+        help: "Output format (plain or json)")
+    var format: OutputFormat = .plain
+
     func run() {
-        reminders.setComplete(true, itemAtIndexOrId: self.indexOrId, onListNamedOrId: self.listNameOrId)
+        reminders.setComplete(true, itemAtIndexOrId: self.indexOrId,
+                            onListNamedOrId: self.listNameOrId,
+                            outputFormat: format)
     }
 }
 
@@ -184,8 +191,15 @@ private struct Uncomplete: ParsableCommand {
         help: "The index or id of the reminder to delete, see 'show' for indexes and IDs")
     var indexOrId: String
 
+    @Option(
+        name: .shortAndLong,
+        help: "Output format (plain or json)")
+    var format: OutputFormat = .plain
+
     func run() {
-        reminders.setComplete(false, itemAtIndexOrId: self.indexOrId, onListNamedOrId: self.listNameOrId)
+        reminders.setComplete(false, itemAtIndexOrId: self.indexOrId,
+                            onListNamedOrId: self.listNameOrId,
+                            outputFormat: format)
     }
 }
 
@@ -234,6 +248,11 @@ private struct Edit: ParsableCommand {
         help: "The new reminder contents")
     var reminder: [String] = []
 
+    @Option(
+        name: .shortAndLong,
+        help: "Output format (plain or json)")
+    var format: OutputFormat = .plain
+
     func validate() throws {
         if self.reminder.isEmpty && self.notes == nil {
             throw ValidationError("Must specify either new reminder content or new notes")
@@ -246,7 +265,8 @@ private struct Edit: ParsableCommand {
             itemAtIndexOrId: self.indexOrId,
             onListNamedOrId: self.listNameOrId,
             newText: newText.isEmpty ? nil : newText,
-            newNotes: self.notes
+            newNotes: self.notes,
+            outputFormat: format
         )
     }
 }

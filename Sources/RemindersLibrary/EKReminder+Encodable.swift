@@ -1,6 +1,6 @@
 import EventKit
 
-extension EKReminder: Encodable {
+extension EKReminder: @retroactive Encodable {
     private enum EncodingKeys: String, CodingKey {
         case externalId
         case lastModified

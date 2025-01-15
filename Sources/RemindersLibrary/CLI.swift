@@ -61,9 +61,8 @@ private struct Show: ParsableCommand {
         abstract: "Print the items on the given list")
 
     @Argument(
-        help: "The list to print items from, see 'show-lists' for names",
-        completion: .custom(listNameCompletion))
-    var listName: String
+        help: "The list to print items from, see 'show-lists' for names or IDs")
+    var listNameOrId: String
 
     @Flag(help: "Show completed items only")
     var onlyCompleted = false
@@ -107,7 +106,7 @@ private struct Show: ParsableCommand {
         }
 
         reminders.showListItems(
-            withName: self.listName, dueOn: self.dueDate, displayOptions: displayOptions,
+            withNameOrId: self.listNameOrId, dueOn: self.dueDate, displayOptions: displayOptions,
             outputFormat: format, sort: sort, sortOrder: sortOrder)
     }
 }
@@ -117,9 +116,8 @@ private struct Add: ParsableCommand {
         abstract: "Add a reminder to a list")
 
     @Argument(
-        help: "The list to add to, see 'show-lists' for names",
-        completion: .custom(listNameCompletion))
-    var listName: String
+        help: "The list to add to, see 'show-lists' for names or IDs")
+    var listNameOrId: String
 
     @Argument(
         parsing: .remaining,
@@ -150,7 +148,7 @@ private struct Add: ParsableCommand {
         reminders.addReminder(
             string: self.reminder.joined(separator: " "),
             notes: self.notes,
-            toListNamed: self.listName,
+            toListNameOrId: self.listNameOrId,
             dueDateComponents: self.dueDate,
             priority: priority,
             outputFormat: format)
@@ -162,16 +160,22 @@ private struct Complete: ParsableCommand {
         abstract: "Complete a reminder")
 
     @Argument(
-        help: "The list to complete a reminder on, see 'show-lists' for names",
-        completion: .custom(listNameCompletion))
-    var listName: String
+        help: "The list to complete a reminder on, see 'show-lists' for names or IDs")
+    var listNameOrId: String
 
     @Argument(
-        help: "The index or id of the reminder to delete, see 'show' for indexes")
-    var index: String
+        help: "The index or id of the reminder to delete, see 'show' for indexes and IDs")
+    var indexOrId: String
+
+    @Option(
+        name: .shortAndLong,
+        help: "Output format (plain or json)")
+    var format: OutputFormat = .plain
 
     func run() {
-        reminders.setComplete(true, itemAtIndex: self.index, onListNamed: self.listName)
+        reminders.setComplete(true, itemAtIndexOrId: self.indexOrId,
+                            onListNamedOrId: self.listNameOrId,
+                            outputFormat: format)
     }
 }
 
@@ -180,16 +184,22 @@ private struct Uncomplete: ParsableCommand {
         abstract: "Uncomplete a reminder")
 
     @Argument(
-        help: "The list to uncomplete a reminder on, see 'show-lists' for names",
-        completion: .custom(listNameCompletion))
-    var listName: String
+        help: "The list to uncomplete a reminder on, see 'show-lists' for names or IDs")
+    var listNameOrId: String
 
     @Argument(
-        help: "The index or id of the reminder to delete, see 'show' for indexes")
-    var index: String
+        help: "The index or id of the reminder to delete, see 'show' for indexes and IDs")
+    var indexOrId: String
+
+    @Option(
+        name: .shortAndLong,
+        help: "Output format (plain or json)")
+    var format: OutputFormat = .plain
 
     func run() {
-        reminders.setComplete(false, itemAtIndex: self.index, onListNamed: self.listName)
+        reminders.setComplete(false, itemAtIndexOrId: self.indexOrId,
+                            onListNamedOrId: self.listNameOrId,
+                            outputFormat: format)
     }
 }
 
@@ -198,16 +208,15 @@ private struct Delete: ParsableCommand {
         abstract: "Delete a reminder")
 
     @Argument(
-        help: "The list to delete a reminder on, see 'show-lists' for names",
-        completion: .custom(listNameCompletion))
-    var listName: String
+        help: "The list to delete a reminder on, see 'show-lists' for names or IDs")
+    var listNameOrId: String
 
     @Argument(
-        help: "The index or id of the reminder to delete, see 'show' for indexes")
-    var index: String
+        help: "The index or id of the reminder to delete, see 'show' for indexes and IDs")
+    var indexOrId: String
 
     func run() {
-        reminders.delete(itemAtIndex: self.index, onListNamed: self.listName)
+        reminders.delete(itemAtIndexOrId: self.indexOrId, onListNamedOrId: self.listNameOrId)
     }
 }
 
@@ -222,13 +231,12 @@ private struct Edit: ParsableCommand {
         abstract: "Edit the text of a reminder")
 
     @Argument(
-        help: "The list to edit a reminder on, see 'show-lists' for names",
-        completion: .custom(listNameCompletion))
-    var listName: String
+        help: "The list to edit a reminder on, see 'show-lists' for names or IDs")
+    var listNameOrId: String
 
     @Argument(
-        help: "The index or id of the reminder to delete, see 'show' for indexes")
-    var index: String
+        help: "The index or id of the reminder to delete, see 'show' for indexes and IDs")
+    var indexOrId: String
 
     @Option(
         name: .shortAndLong,
@@ -240,6 +248,11 @@ private struct Edit: ParsableCommand {
         help: "The new reminder contents")
     var reminder: [String] = []
 
+    @Option(
+        name: .shortAndLong,
+        help: "Output format (plain or json)")
+    var format: OutputFormat = .plain
+
     func validate() throws {
         if self.reminder.isEmpty && self.notes == nil {
             throw ValidationError("Must specify either new reminder content or new notes")
@@ -249,10 +262,11 @@ private struct Edit: ParsableCommand {
     func run() {
         let newText = self.reminder.joined(separator: " ")
         reminders.edit(
-            itemAtIndex: self.index,
-            onListNamed: self.listName,
+            itemAtIndexOrId: self.indexOrId,
+            onListNamedOrId: self.listNameOrId,
             newText: newText.isEmpty ? nil : newText,
-            newNotes: self.notes
+            newNotes: self.notes,
+            outputFormat: format
         )
     }
 }

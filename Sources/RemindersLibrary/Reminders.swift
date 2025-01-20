@@ -90,7 +90,7 @@ public final class Reminders {
     }
 
     func showLists(outputFormat: OutputFormat) {
-        switch (outputFormat) {
+        switch outputFormat {
         case .json:
             print(encodeToJson(data: self.getListNames()))
         default:
@@ -100,8 +100,10 @@ public final class Reminders {
         }
     }
 
-    func showAllReminders(dueOn dueDate: DateComponents?,
-                          displayOptions: DisplayOptions, outputFormat: OutputFormat) {
+    func showAllReminders(
+        dueOn dueDate: DateComponents?,
+        displayOptions: DisplayOptions, outputFormat: OutputFormat
+    ) {
         let semaphore = DispatchSemaphore(value: 0)
         let calendar = Calendar.current
 
@@ -316,6 +318,75 @@ public final class Reminders {
         reminder.notes = notes
         reminder.dueDateComponents = dueDateComponents
         reminder.priority = Int(priority.value.rawValue)
+        if let dueDate = dueDateComponents?.date, dueDateComponents?.hour != nil {
+            reminder.addAlarm(EKAlarm(absoluteDate: dueDate))
+        }
+
+        do {
+            try Store.save(reminder, commit: true)
+            switch (outputFormat) {
+            case .json:
+                print(encodeToJson(data: reminder))
+            default:
+                print("Added '\(reminder.title!)' to '\(calendar.title)'")
+            }
+        } catch let error {
+            print("Failed to save reminder with error: \(error)")
+            exit(1)
+        }
+    }
+
+    func addReminderJSON(string: String, outputFormat: OutputFormat)
+    {
+        // Let's decode the JSON string into a dictionary
+        guard let jsonData = string.data(using: .utf8) else {
+            print("Failed to convert JSON string to data")
+            exit(1)
+        }
+        
+        guard let json = try? JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any] else {
+            print("Failed to parse data as JSON")
+            exit(1)
+        }
+        
+        let title = json["title"] as? String ?? ""
+        let name = json["listName"] as? String ?? ""
+        let notes = json["notes"] as? String ?? ""
+
+        let prior = json["priority"] as? String ?? "none"
+        let priority = Priority(rawValue: prior) ?? .none
+        
+        let recur = json["recurring"] as? String ?? "none"
+        
+        let ddate = json["dueDate"] as? String ?? ""
+        let dueDateComponents = DateComponents(argument: ddate)
+        
+        // Let's create a new reminder
+        let calendar = self.calendar(withName: name)
+        let reminder = EKReminder(eventStore: Store)
+        reminder.calendar = calendar
+        reminder.title = title
+        reminder.notes = notes
+        reminder.priority = Int(priority.value.rawValue)
+
+        switch (recur) { // see also, e.g. EKRecurrenceRule(recurrenceWith: .weekly, interval: 1, daysOfTheWeek: [.init(.monday),.init(.tuesday)], daysOfTheMonth: nil, monthsOfTheYear: nil, weeksOfTheYear: nil, daysOfTheYear: nil, setPositions: nil, end: .none)
+            case "daily":
+                reminder.addRecurrenceRule(EKRecurrenceRule(recurrenceWith: .daily, interval: 1, end: .none))
+                reminder.addAlarm(EKAlarm(relativeOffset: .zero))
+            case "weekly":
+                reminder.addRecurrenceRule(EKRecurrenceRule(recurrenceWith: .weekly, interval: 1, end: .none))
+            reminder.addAlarm(EKAlarm(relativeOffset: .zero))
+            case "monthly":
+                reminder.addRecurrenceRule(EKRecurrenceRule(recurrenceWith: .monthly, interval: 1, end: .none))
+            reminder.addAlarm(EKAlarm(relativeOffset: .zero))
+            case "yearly":
+                reminder.addRecurrenceRule(EKRecurrenceRule(recurrenceWith: .yearly, interval: 1, end: .none))
+            reminder.addAlarm(EKAlarm(relativeOffset: .zero))
+            default:
+                break
+        }
+
+        reminder.dueDateComponents = dueDateComponents
         if let dueDate = dueDateComponents?.date, dueDateComponents?.hour != nil {
             reminder.addAlarm(EKAlarm(absoluteDate: dueDate))
         }

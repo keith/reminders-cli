@@ -157,6 +157,27 @@ private struct Add: ParsableCommand {
     }
 }
 
+private struct AddJSON: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "Add a reminder as JSON")
+    
+    @Argument(
+        parsing: .remaining,
+        help: "The JSON string representing the reminder to add")
+    var JSONstring: [String]
+    
+    @Option(
+        name: .shortAndLong,
+        help: "format, either of 'plain' or 'json'")
+    var format: OutputFormat = .plain
+    
+    func run() {
+        reminders.addReminderJSON(
+            string: self.JSONstring.joined(separator: " "),
+            outputFormat: format)
+    }
+}
+
 private struct Complete: ParsableCommand {
     static let configuration = CommandConfiguration(
         abstract: "Complete a reminder")
@@ -282,6 +303,7 @@ public struct CLI: ParsableCommand {
         abstract: "Interact with macOS Reminders from the command line",
         subcommands: [
             Add.self,
+            AddJSON.self,
             Complete.self,
             Uncomplete.self,
             Delete.self,

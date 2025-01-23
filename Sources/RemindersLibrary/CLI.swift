@@ -10,9 +10,18 @@ private struct ShowLists: ParsableCommand {
         name: .shortAndLong,
         help: "format, either of 'plain' or 'json'")
     var format: OutputFormat = .plain
+    
+    @Flag(
+        name: .shortAndLong,
+        help: "show only the default Reminders list")
+    var defaultOnly: Bool = false
 
     func run() {
-        reminders.showLists(outputFormat: format)
+        if defaultOnly {
+            print(reminders.getDefaultList())
+        } else {
+            reminders.showLists(outputFormat: format)
+        }
     }
 }
 
@@ -229,6 +238,26 @@ private struct Edit: ParsableCommand {
     @Argument(
         help: "The index or id of the reminder to delete, see 'show' for indexes")
     var index: String
+    
+    @Option(
+        name: .shortAndLong,
+        help: "The new date the reminder is due")
+    var dueDate: DateComponents?
+    
+    @Flag(
+        name: .shortAndLong,
+        help: "Clear the due date.")
+    var clearDueDate: Bool = false
+    
+    @Option(
+        name: .shortAndLong,
+        help: "The new priority of the reminder")
+    var priority: Priority?
+    
+    @Flag(
+        name: .shortAndLong,
+        help: "Clear the priority of the reminder.")
+    var clearPriority: Bool = false
 
     @Option(
         name: .shortAndLong,
@@ -241,8 +270,13 @@ private struct Edit: ParsableCommand {
     var reminder: [String] = []
 
     func validate() throws {
-        if self.reminder.isEmpty && self.notes == nil {
-            throw ValidationError("Must specify either new reminder content or new notes")
+
+        if self.dueDate != nil && self.clearDueDate {
+            throw ValidationError("Don't try to set & clear the due date at the same time.")
+        }
+
+        if self.reminder.isEmpty && self.notes == nil && self.dueDate == nil && !self.clearDueDate {
+            throw ValidationError("Must specify new reminder content, new notes, or a new due date.")
         }
     }
 
@@ -252,7 +286,11 @@ private struct Edit: ParsableCommand {
             itemAtIndex: self.index,
             onListNamed: self.listName,
             newText: newText.isEmpty ? nil : newText,
-            newNotes: self.notes
+            newNotes: self.notes,
+            dueDateComponents: self.dueDate,
+            clearDueDate: self.clearDueDate,
+            priority: self.priority,
+            clearPriority: self.clearPriority
         )
     }
 }

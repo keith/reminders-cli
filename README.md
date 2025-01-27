@@ -72,6 +72,21 @@ $ reminders show Soon
 3: Something really important (priority: high)
 ```
 
+#### Add a reminder via JSON input string
+
+```
+json_string='{
+  "title": "Buy groceries",
+  "notes": "Milk, eggs, bread, cheese",
+  "dueDate": "2025-02-15T10:24:00Z",
+  "priority": "medium",
+  "listName": "Groceries",
+  "recurring": "weekly",
+}'
+
+$ reminders add-json $json_string
+```
+
 #### See help for more examples
 
 ```

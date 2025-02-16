@@ -72,6 +72,21 @@ $ reminders show Soon
 3: Something really important (priority: high)
 ```
 
+#### Show reminders due on or by a date
+
+```
+$ reminders show-all --due-date today
+1: Contribute to open source (in 3 hours)
+$ reminders show-all --due-date today --include-overdue
+0: Ship reminders-cli (2 days ago)
+1: Contribute to open source (in 3 hours)
+$ reminders show-all --due-date 2025-02-16
+1: Contribute to open source (in 3 hours)
+$ reminders show Soon --due-date today --include-overdue
+0: Ship reminders-cli (2 days ago)
+1: Contribute to open source (in 3 hours)
+```
+
 #### See help for more examples
 
 ```

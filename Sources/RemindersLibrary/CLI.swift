@@ -26,6 +26,9 @@ private struct ShowAll: ParsableCommand {
     @Flag(help: "Include completed items in output")
     var includeCompleted = false
 
+    @Flag(help: "When using --due-date, also include items due before the due date")
+    var includeOverdue = false
+
     @Option(
         name: .shortAndLong,
         help: "Show only reminders due on this date")
@@ -52,7 +55,8 @@ private struct ShowAll: ParsableCommand {
         }
 
         reminders.showAllReminders(
-            dueOn: self.dueDate, displayOptions: displayOptions, outputFormat: format)
+            dueOn: self.dueDate, includeOverdue: self.includeOverdue,
+            displayOptions: displayOptions, outputFormat: format)
     }
 }
 
@@ -70,6 +74,9 @@ private struct Show: ParsableCommand {
 
     @Flag(help: "Include completed items in output")
     var includeCompleted = false
+
+    @Flag(help: "When using --due-date, also include items due before the due date")
+    var includeOverdue = false
 
     @Option(
         name: .shortAndLong,
@@ -107,8 +114,8 @@ private struct Show: ParsableCommand {
         }
 
         reminders.showListItems(
-            withName: self.listName, dueOn: self.dueDate, displayOptions: displayOptions,
-            outputFormat: format, sort: sort, sortOrder: sortOrder)
+            withName: self.listName, dueOn: self.dueDate, includeOverdue: self.includeOverdue,
+            displayOptions: displayOptions, outputFormat: format, sort: sort, sortOrder: sortOrder)
     }
 }
 

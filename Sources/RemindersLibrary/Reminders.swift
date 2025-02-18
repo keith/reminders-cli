@@ -100,8 +100,9 @@ public final class Reminders {
         }
     }
 
-    func showAllReminders(dueOn dueDate: DateComponents?,
-                          displayOptions: DisplayOptions, outputFormat: OutputFormat) {
+    func showAllReminders(dueOn dueDate: DateComponents?, includeOverdue: Bool,
+        displayOptions: DisplayOptions, outputFormat: OutputFormat
+    ) {
         let semaphore = DispatchSemaphore(value: 0)
         let calendar = Calendar.current
 
@@ -120,7 +121,10 @@ public final class Reminders {
 
                 let sameDay = calendar.compare(
                     reminderDueDate, to: dueDate, toGranularity: .day) == .orderedSame
-                if sameDay {
+                let earlierDay = calendar.compare(
+                    reminderDueDate, to: dueDate, toGranularity: .day) == .orderedAscending
+
+                if sameDay || (includeOverdue && earlierDay) {
                     matchingReminders.append((reminder, i, listName))
                 }
             }
@@ -140,8 +144,8 @@ public final class Reminders {
         semaphore.wait()
     }
 
-    func showListItems(withName name: String, dueOn dueDate: DateComponents?, displayOptions: DisplayOptions,
-                       outputFormat: OutputFormat, sort: Sort, sortOrder: CustomSortOrder)
+    func showListItems(withName name: String, dueOn dueDate: DateComponents?, includeOverdue: Bool,
+        displayOptions: DisplayOptions, outputFormat: OutputFormat, sort: Sort, sortOrder: CustomSortOrder)
     {
         let semaphore = DispatchSemaphore(value: 0)
         let calendar = Calendar.current
@@ -162,7 +166,10 @@ public final class Reminders {
 
                 let sameDay = calendar.compare(
                     reminderDueDate, to: dueDate, toGranularity: .day) == .orderedSame
-                if sameDay {
+                let earlierDay = calendar.compare(
+                    reminderDueDate, to: dueDate, toGranularity: .day) == .orderedAscending
+
+                if sameDay || (includeOverdue && earlierDay) {
                     matchingReminders.append((reminder, index))
                 }
             }

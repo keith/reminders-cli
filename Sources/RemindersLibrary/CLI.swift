@@ -218,12 +218,31 @@ private struct Delete: ParsableCommand {
         help: "The list to delete a reminder on, see 'show-lists' for names or IDs")
     var listNameOrId: String
 
-    @Argument(
-        help: "The index or id of the reminder to delete, see 'show' for indexes and IDs")
-    var indexOrId: String
+    @Option(
+        name: .long,
+        help: "Delete by reminder ID (external identifier)")
+    var id: String?
+
+    @Option(
+        name: .long,
+        help: "Delete by index from 'show' output")
+    var index: Int?
+
+    func validate() throws {
+        if id == nil && index == nil {
+            throw ValidationError("Specify one of --id or --index")
+        }
+        if id != nil && index != nil {
+            throw ValidationError("Specify only one of --id or --index")
+        }
+    }
 
     func run() {
-        reminders.delete(itemAtIndexOrId: self.indexOrId, onListNamedOrId: self.listNameOrId)
+        if let id = id {
+            reminders.delete(itemId: id, onListNamedOrId: self.listNameOrId)
+        } else if let index = index {
+            reminders.delete(itemAtIndex: index, onListNamedOrId: self.listNameOrId)
+        }
     }
 }
 

@@ -298,13 +298,40 @@ public final class Reminders {
         semaphore.wait()
     }
 
-    func delete(itemAtIndexOrId indexOrId: String, onListNamedOrId nameOrId: String) {
+    func delete(itemId id: String, onListNamedOrId nameOrId: String) {
+        delete(
+            itemFromListNamedOrId: nameOrId,
+            displayOptions: .all,
+            errorSuffix: "ID \(id)",
+            select: { reminders in
+                reminders.first { $0.calendarItemExternalIdentifier == id }
+            }
+        )
+    }
+
+    func delete(itemAtIndex index: Int, onListNamedOrId nameOrId: String) {
+        delete(
+            itemFromListNamedOrId: nameOrId,
+            displayOptions: .incomplete,
+            errorSuffix: "index \(index)",
+            select: { reminders in
+                reminders[safe: index]
+            }
+        )
+    }
+
+    private func delete(
+        itemFromListNamedOrId nameOrId: String,
+        displayOptions: DisplayOptions,
+        errorSuffix: String,
+        select: @escaping (_ reminders: [EKReminder]) -> EKReminder?)
+    {
         let calendar = self.calendar(withNameOrId: nameOrId)
         let semaphore = DispatchSemaphore(value: 0)
 
-        self.reminders(on: [calendar], displayOptions: .incomplete) { reminders in
-            guard let reminder = self.getReminder(from: reminders, atIndexOrId: indexOrId) else {
-                print("No reminder at index or with ID \(indexOrId) on \(nameOrId)")
+        self.reminders(on: [calendar], displayOptions: displayOptions) { reminders in
+            guard let reminder = select(reminders) else {
+                print("No reminder at \(errorSuffix) on \(nameOrId)")
                 exit(1)
             }
 

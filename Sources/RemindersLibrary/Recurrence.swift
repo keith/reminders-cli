@@ -14,6 +14,11 @@ public struct Recurrence: ExpressibleByArgument {
 
     public init?(argument: String) {
         let lowered = argument.lowercased()
+        // Reject a leading '-' up front: `split(separator:)` omits empty
+        // subsequences by default, so "-1-weeks" would otherwise silently
+        // lose its sign and parse as the (wrong) positive interval 1.
+        guard !lowered.hasPrefix("-") else { return nil }
+
         let parts = lowered.split(separator: "-", maxSplits: 1)
 
         let intervalPart: Int

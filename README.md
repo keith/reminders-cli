@@ -72,6 +72,18 @@ $ reminders show Soon
 3: Something really important (priority: high)
 ```
 
+#### Add a recurring reminder
+
+`--repeat` requires `--due-date` to also be set, and accepts `daily`, `weekly`,
+`monthly`, `yearly`, or an interval like `2-weeks` / `3-months`.
+
+```
+$ reminders add Soon Water the plants --due-date "tomorrow 9am" --repeat weekly
+$ reminders edit Soon 0 --repeat 2-weeks
+$ reminders show Soon
+0: Water the plants (in 10 hours) (repeats: weekly)
+```
+
 #### Show reminders due on or by a date
 
 ```

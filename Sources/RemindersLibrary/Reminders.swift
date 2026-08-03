@@ -19,10 +19,11 @@ private extension EKReminder {
 private func format(_ reminder: EKReminder, at index: Int?, listName: String? = nil) -> String {
     let dateString = formattedDueDate(from: reminder).map { " (\($0))" } ?? ""
     let priorityString = Priority(reminder.mappedPriority).map { " (priority: \($0))" } ?? ""
+    let recurrenceString = reminder.recurrenceRules?.first.map { " (repeats: \($0.shortDescription))" } ?? ""
     let listString = listName.map { "\($0): " } ?? ""
     let notesString = reminder.notes.map { " (\($0))" } ?? ""
     let indexString = index.map { "\($0): " } ?? ""
-    return "\(listString)\(indexString)\(reminder.title ?? "<unknown>")\(notesString)\(dateString)\(priorityString)"
+    return "\(listString)\(indexString)\(reminder.title ?? "<unknown>")\(notesString)\(dateString)\(recurrenceString)\(priorityString)"
 }
 
 public enum OutputFormat: String, ExpressibleByArgument {
@@ -230,7 +231,9 @@ public final class Reminders {
         }
     }
 
-    func edit(itemAtIndex index: String, onListNamed name: String, newText: String?, newNotes: String?) {
+    func edit(itemAtIndex index: String, onListNamed name: String, newText: String?, newNotes: String?,
+        newDueDateComponents: DateComponents? = nil, newRecurrence: Recurrence? = nil)
+    {
         let calendar = self.calendar(withName: name)
         let semaphore = DispatchSemaphore(value: 0)
 
@@ -243,6 +246,20 @@ public final class Reminders {
             do {
                 reminder.title = newText ?? reminder.title
                 reminder.notes = newNotes ?? reminder.notes
+                if let newDueDateComponents = newDueDateComponents {
+                    reminder.dueDateComponents = newDueDateComponents
+                }
+                if let recurrence = newRecurrence {
+                    guard reminder.dueDateComponents != nil else {
+                        print("Cannot set --repeat on a reminder with no due date, pass --due-date too")
+                        exit(1)
+                    }
+                    // Recurrence rules must be attached before saving, replace any existing ones.
+                    for rule in reminder.recurrenceRules ?? [] {
+                        reminder.removeRecurrenceRule(rule)
+                    }
+                    reminder.addRecurrenceRule(recurrence.recurrenceRule)
+                }
                 try Store.save(reminder, commit: true)
                 print("Updated reminder '\(reminder.title!)'")
             } catch let error {
@@ -324,6 +341,7 @@ public final class Reminders {
         toListNamed name: String,
         dueDateComponents: DateComponents?,
         priority: Priority,
+        recurrence: Recurrence? = nil,
         outputFormat: OutputFormat)
     {
         let calendar = self.calendar(withName: name)
@@ -335,6 +353,11 @@ public final class Reminders {
         reminder.priority = Int(priority.value.rawValue)
         if let dueDate = dueDateComponents?.date, dueDateComponents?.hour != nil {
             reminder.addAlarm(EKAlarm(absoluteDate: dueDate))
+        }
+        // Recurrence rules must be added before the initial save, adding them
+        // afterwards silently fails to persist.
+        if let recurrence = recurrence {
+            reminder.addRecurrenceRule(recurrence.recurrenceRule)
         }
 
         do {

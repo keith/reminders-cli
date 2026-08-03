@@ -15,6 +15,7 @@ extension EKReminder: @retroactive Encodable {
         case priority
         case startDate
         case dueDate
+        case recurrence
         case list
     }
 
@@ -49,6 +50,10 @@ extension EKReminder: @retroactive Encodable {
 
         if let dueDateComponents = self.dueDateComponents {
             try container.encodeIfPresent(format(dueDateComponents.date), forKey: .dueDate)
+        }
+
+        if let recurrenceRule = self.recurrenceRules?.first {
+            try container.encode(recurrenceRule.shortDescription, forKey: .recurrence)
         }
         
         if let lastModifiedDate = self.lastModifiedDate {

@@ -153,6 +153,17 @@ private struct Add: ParsableCommand {
         help: "The notes to add to the reminder")
     var notes: String?
 
+    @Option(
+        name: .shortAndLong,
+        help: "\(Recurrence.helpText). Requires --due-date to be set")
+    var `repeat`: Recurrence?
+
+    func validate() throws {
+        if self.repeat != nil && self.dueDate == nil {
+            throw ValidationError("--repeat requires --due-date to also be set")
+        }
+    }
+
     func run() {
         reminders.addReminder(
             string: self.reminder.joined(separator: " "),
@@ -160,6 +171,7 @@ private struct Add: ParsableCommand {
             toListNamed: self.listName,
             dueDateComponents: self.dueDate,
             priority: priority,
+            recurrence: self.repeat,
             outputFormat: format)
     }
 }
@@ -242,14 +254,24 @@ private struct Edit: ParsableCommand {
         help: "The notes to set on the reminder, overwriting previous notes")
     var notes: String?
 
+    @Option(
+        name: .shortAndLong,
+        help: "The due date to set on the reminder, overwriting the previous due date")
+    var dueDate: DateComponents?
+
+    @Option(
+        name: .shortAndLong,
+        help: "\(Recurrence.helpText). Requires the reminder to have a due date, either previously set or via --due-date")
+    var `repeat`: Recurrence?
+
     @Argument(
         parsing: .remaining,
         help: "The new reminder contents")
     var reminder: [String] = []
 
     func validate() throws {
-        if self.reminder.isEmpty && self.notes == nil {
-            throw ValidationError("Must specify either new reminder content or new notes")
+        if self.reminder.isEmpty && self.notes == nil && self.dueDate == nil && self.repeat == nil {
+            throw ValidationError("Must specify new reminder content, notes, due date, or repeat")
         }
     }
 
@@ -259,7 +281,9 @@ private struct Edit: ParsableCommand {
             itemAtIndex: self.index,
             onListNamed: self.listName,
             newText: newText.isEmpty ? nil : newText,
-            newNotes: self.notes
+            newNotes: self.notes,
+            newDueDateComponents: self.dueDate,
+            newRecurrence: self.repeat
         )
     }
 }

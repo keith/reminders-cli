@@ -230,7 +230,14 @@ public final class Reminders {
         }
     }
 
-    func edit(itemAtIndex index: String, onListNamed name: String, newText: String?, newNotes: String?) {
+    func edit(
+        itemAtIndex index: String,
+        onListNamed name: String,
+        newText: String?,
+        newNotes: String?,
+        newDueDateComponents: DateComponents? = nil,
+        clearDueDate: Bool = false)
+    {
         let calendar = self.calendar(withName: name)
         let semaphore = DispatchSemaphore(value: 0)
 
@@ -243,6 +250,23 @@ public final class Reminders {
             do {
                 reminder.title = newText ?? reminder.title
                 reminder.notes = newNotes ?? reminder.notes
+
+                if clearDueDate {
+                    reminder.dueDateComponents = nil
+                    for alarm in reminder.alarms ?? [] {
+                        reminder.removeAlarm(alarm)
+                    }
+                } else if let newDueDateComponents {
+                    reminder.dueDateComponents = newDueDateComponents
+                    for alarm in reminder.alarms ?? [] {
+                        reminder.removeAlarm(alarm)
+                    }
+
+                    if let dueDate = newDueDateComponents.date, newDueDateComponents.hour != nil {
+                        reminder.addAlarm(EKAlarm(absoluteDate: dueDate))
+                    }
+                }
+
                 try Store.save(reminder, commit: true)
                 print("Updated reminder '\(reminder.title!)'")
             } catch let error {

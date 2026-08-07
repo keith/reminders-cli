@@ -35,6 +35,46 @@ public enum DisplayOptions: String, Decodable {
     case complete
 }
 
+public enum Recurrence: String, ExpressibleByArgument {
+    case hourly
+    case daily
+    case weekly
+    case monthly
+    case yearly
+
+    var frequency: EKRecurrenceFrequency {
+        switch self {
+            case .hourly: return .daily  // EventKit has no hourly frequency; see interval note below.
+            case .daily: return .daily
+            case .weekly: return .weekly
+            case .monthly: return .monthly
+            case .yearly: return .yearly
+        }
+    }
+
+    /// EventKit's `EKRecurrenceFrequency` has no hourly case, so `.hourly` is
+    /// modeled as a daily rule with a 1-day interval and 24 hourly recurrences
+    /// per day is not representable via `EKRecurrenceRule` alone. Since
+    /// reminders don't carry a native hourly repeat concept in EventKit (the
+    /// Reminders.app UI itself doesn't expose "hourly" either), `.hourly` is
+    /// intentionally rejected at parse time in `RecurrenceOption` rather than
+    /// silently degrading to daily. See CLI.swift for the actual validation;
+    /// this case is kept in the enum only so `--repeat hourly` produces a
+    /// clear, on-brand error message instead of an ArgumentParser "invalid
+    /// value" message with no explanation.
+    var isRepresentable: Bool {
+        self != .hourly
+    }
+
+    func recurrenceRule(interval: Int, until: Date?) -> EKRecurrenceRule {
+        let end = until.map { EKRecurrenceEnd(end: $0) }
+        return EKRecurrenceRule(
+            recurrenceWith: self.frequency,
+            interval: interval,
+            end: end)
+    }
+}
+
 public enum Priority: String, ExpressibleByArgument {
     case none
     case low
@@ -230,7 +270,11 @@ public final class Reminders {
         }
     }
 
-    func edit(itemAtIndex index: String, onListNamed name: String, newText: String?, newNotes: String?) {
+    func edit(
+        itemAtIndex index: String, onListNamed name: String, newText: String?, newNotes: String?,
+        newRecurrence: Recurrence?, newRecurrenceInterval: Int, newRecurrenceEnd: DateComponents?,
+        clearRecurrence: Bool)
+    {
         let calendar = self.calendar(withName: name)
         let semaphore = DispatchSemaphore(value: 0)
 
@@ -243,6 +287,18 @@ public final class Reminders {
             do {
                 reminder.title = newText ?? reminder.title
                 reminder.notes = newNotes ?? reminder.notes
+                if clearRecurrence {
+                    for rule in reminder.recurrenceRules ?? [] {
+                        reminder.removeRecurrenceRule(rule)
+                    }
+                } else if let newRecurrence = newRecurrence {
+                    for rule in reminder.recurrenceRules ?? [] {
+                        reminder.removeRecurrenceRule(rule)
+                    }
+                    let rule = newRecurrence.recurrenceRule(
+                        interval: newRecurrenceInterval, until: newRecurrenceEnd?.date)
+                    reminder.addRecurrenceRule(rule)
+                }
                 try Store.save(reminder, commit: true)
                 print("Updated reminder '\(reminder.title!)'")
             } catch let error {
@@ -324,6 +380,9 @@ public final class Reminders {
         toListNamed name: String,
         dueDateComponents: DateComponents?,
         priority: Priority,
+        recurrence: Recurrence?,
+        recurrenceInterval: Int,
+        recurrenceEnd: DateComponents?,
         outputFormat: OutputFormat)
     {
         let calendar = self.calendar(withName: name)
@@ -335,6 +394,11 @@ public final class Reminders {
         reminder.priority = Int(priority.value.rawValue)
         if let dueDate = dueDateComponents?.date, dueDateComponents?.hour != nil {
             reminder.addAlarm(EKAlarm(absoluteDate: dueDate))
+        }
+        if let recurrence = recurrence {
+            let rule = recurrence.recurrenceRule(
+                interval: recurrenceInterval, until: recurrenceEnd?.date)
+            reminder.addRecurrenceRule(rule)
         }
 
         do {

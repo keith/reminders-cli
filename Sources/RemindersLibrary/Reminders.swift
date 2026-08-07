@@ -35,6 +35,64 @@ public enum DisplayOptions: String, Decodable {
     case complete
 }
 
+public enum Recurrence: String, ExpressibleByArgument {
+    case hourly
+    case daily
+    case weekly
+    case monthly
+    case yearly
+
+    var frequency: EKRecurrenceFrequency {
+        switch self {
+            case .hourly: return .daily  // never used: .hourly is rejected by validateRepeatOptions
+            case .daily: return .daily
+            case .weekly: return .weekly
+            case .monthly: return .monthly
+            case .yearly: return .yearly
+        }
+    }
+
+    /// EventKit has no hourly `EKRecurrenceFrequency`, so `.hourly` exists only so that
+    /// `--repeat hourly` fails with an explanation instead of ArgumentParser's generic
+    /// "invalid value" message.
+    var isRepresentable: Bool {
+        self != .hourly
+    }
+
+    /// `--repeat-until 2026-10-24` means "through the end of that day": a date-only value
+    /// resolves to 23:59:59 so an occurrence on that day with a due time is kept. A value
+    /// with an explicit time is used as given.
+    static func endDate(from components: DateComponents) -> Date? {
+        guard let date = components.date else { return nil }
+        if components.hour != nil { return date }
+        let calendar = components.calendar ?? Calendar.current
+        return calendar.date(byAdding: DateComponents(day: 1, second: -1), to: date)
+    }
+
+    func recurrenceRule(interval: Int, until: Date?) -> EKRecurrenceRule {
+        let end = until.map { EKRecurrenceEnd(end: $0) }
+        return EKRecurrenceRule(
+            recurrenceWith: self.frequency,
+            interval: interval,
+            end: end)
+    }
+}
+
+func validateRepeatOptions(repeat_: Recurrence?, interval: Int, until: DateComponents?) throws {
+    if let repeat_ = repeat_, !repeat_.isRepresentable {
+        throw ValidationError(
+            "--repeat \(repeat_.rawValue) is not supported: EventKit reminders have no hourly "
+                + "recurrence frequency (Reminders.app itself doesn't expose this either). Use "
+                + "daily, weekly, monthly, or yearly.")
+    }
+    if interval < 1 {
+        throw ValidationError("--repeat-interval must be at least 1")
+    }
+    if repeat_ == nil && (interval != 1 || until != nil) {
+        throw ValidationError("--repeat-interval and --repeat-until require --repeat")
+    }
+}
+
 public enum Priority: String, ExpressibleByArgument {
     case none
     case low
@@ -236,7 +294,11 @@ public final class Reminders {
         newText: String?,
         newNotes: String?,
         newDueDateComponents: DateComponents? = nil,
-        clearDueDate: Bool = false)
+        clearDueDate: Bool = false,
+        newRecurrence: Recurrence? = nil,
+        newRecurrenceInterval: Int = 1,
+        newRecurrenceEnd: DateComponents? = nil,
+        clearRecurrence: Bool = false)
     {
         let calendar = self.calendar(withName: name)
         let semaphore = DispatchSemaphore(value: 0)
@@ -250,6 +312,18 @@ public final class Reminders {
             do {
                 reminder.title = newText ?? reminder.title
                 reminder.notes = newNotes ?? reminder.notes
+
+                if clearRecurrence || newRecurrence != nil {
+                    for rule in reminder.recurrenceRules ?? [] {
+                        reminder.removeRecurrenceRule(rule)
+                    }
+                }
+                if let newRecurrence = newRecurrence {
+                    reminder.addRecurrenceRule(
+                        newRecurrence.recurrenceRule(
+                            interval: newRecurrenceInterval,
+                            until: newRecurrenceEnd.flatMap(Recurrence.endDate(from:))))
+                }
 
                 if clearDueDate {
                     reminder.dueDateComponents = nil
@@ -265,6 +339,15 @@ public final class Reminders {
                     if let dueDate = newDueDateComponents.date, newDueDateComponents.hour != nil {
                         reminder.addAlarm(EKAlarm(absoluteDate: dueDate))
                     }
+                }
+
+                if reminder.dueDateComponents == nil, !(reminder.recurrenceRules ?? []).isEmpty {
+                    if newRecurrence != nil {
+                        print("--repeat requires a due date: this reminder has none, set one with --due-date")
+                    } else {
+                        print("A repeating reminder needs a due date: use --clear-repeat with --clear-due-date, or keep the due date")
+                    }
+                    exit(1)
                 }
 
                 try Store.save(reminder, commit: true)
@@ -348,6 +431,9 @@ public final class Reminders {
         toListNamed name: String,
         dueDateComponents: DateComponents?,
         priority: Priority,
+        recurrence: Recurrence?,
+        recurrenceInterval: Int,
+        recurrenceEnd: DateComponents?,
         outputFormat: OutputFormat)
     {
         let calendar = self.calendar(withName: name)
@@ -359,6 +445,12 @@ public final class Reminders {
         reminder.priority = Int(priority.value.rawValue)
         if let dueDate = dueDateComponents?.date, dueDateComponents?.hour != nil {
             reminder.addAlarm(EKAlarm(absoluteDate: dueDate))
+        }
+        if let recurrence = recurrence {
+            let rule = recurrence.recurrenceRule(
+                interval: recurrenceInterval,
+                until: recurrenceEnd.flatMap(Recurrence.endDate(from:)))
+            reminder.addRecurrenceRule(rule)
         }
 
         do {

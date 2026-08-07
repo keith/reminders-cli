@@ -153,6 +153,36 @@ private struct Add: ParsableCommand {
         help: "The notes to add to the reminder")
     var notes: String?
 
+    @Option(
+        name: [.customLong("repeat")],
+        help: "Repeat the reminder, one of: daily, weekly, monthly, yearly")
+    var repeat_: Recurrence?
+
+    @Option(
+        name: .long,
+        help: "Repeat every N units of --repeat's frequency instead of every 1 (default: 1)")
+    var repeatInterval: Int = 1
+
+    @Option(
+        name: .long,
+        help: "Stop repeating after this date (default: repeats forever)")
+    var repeatUntil: DateComponents?
+
+    func validate() throws {
+        if let repeat_ = repeat_, !repeat_.isRepresentable {
+            throw ValidationError(
+                "--repeat \(repeat_.rawValue) is not supported: EventKit reminders have no hourly "
+                    + "recurrence frequency (Reminders.app itself doesn't expose this either). Use "
+                    + "daily, weekly, monthly, or yearly.")
+        }
+        if repeatInterval < 1 {
+            throw ValidationError("--repeat-interval must be at least 1")
+        }
+        if repeat_ == nil && (repeatInterval != 1 || repeatUntil != nil) {
+            throw ValidationError("--repeat-interval and --repeat-until require --repeat")
+        }
+    }
+
     func run() {
         reminders.addReminder(
             string: self.reminder.joined(separator: " "),
@@ -160,6 +190,9 @@ private struct Add: ParsableCommand {
             toListNamed: self.listName,
             dueDateComponents: self.dueDate,
             priority: priority,
+            recurrence: self.repeat_,
+            recurrenceInterval: self.repeatInterval,
+            recurrenceEnd: self.repeatUntil,
             outputFormat: format)
     }
 }
@@ -242,14 +275,50 @@ private struct Edit: ParsableCommand {
         help: "The notes to set on the reminder, overwriting previous notes")
     var notes: String?
 
+    @Option(
+        name: [.customLong("repeat")],
+        help: "Set (or replace) the reminder's repeat, one of: daily, weekly, monthly, yearly")
+    var repeat_: Recurrence?
+
+    @Option(
+        name: .long,
+        help: "Repeat every N units of --repeat's frequency instead of every 1 (default: 1)")
+    var repeatInterval: Int = 1
+
+    @Option(
+        name: .long,
+        help: "Stop repeating after this date (default: repeats forever)")
+    var repeatUntil: DateComponents?
+
+    @Flag(
+        name: .long,
+        help: "Remove any repeat rule from the reminder")
+    var clearRepeat = false
+
     @Argument(
         parsing: .remaining,
         help: "The new reminder contents")
     var reminder: [String] = []
 
     func validate() throws {
-        if self.reminder.isEmpty && self.notes == nil {
-            throw ValidationError("Must specify either new reminder content or new notes")
+        if self.reminder.isEmpty && self.notes == nil && self.repeat_ == nil && !self.clearRepeat {
+            throw ValidationError(
+                "Must specify new reminder content, new notes, --repeat, or --clear-repeat")
+        }
+        if self.clearRepeat && self.repeat_ != nil {
+            throw ValidationError("Cannot specify both --repeat and --clear-repeat")
+        }
+        if let repeat_ = repeat_, !repeat_.isRepresentable {
+            throw ValidationError(
+                "--repeat \(repeat_.rawValue) is not supported: EventKit reminders have no hourly "
+                    + "recurrence frequency (Reminders.app itself doesn't expose this either). Use "
+                    + "daily, weekly, monthly, or yearly.")
+        }
+        if repeatInterval < 1 {
+            throw ValidationError("--repeat-interval must be at least 1")
+        }
+        if repeat_ == nil && (repeatInterval != 1 || repeatUntil != nil) {
+            throw ValidationError("--repeat-interval and --repeat-until require --repeat")
         }
     }
 
@@ -259,7 +328,11 @@ private struct Edit: ParsableCommand {
             itemAtIndex: self.index,
             onListNamed: self.listName,
             newText: newText.isEmpty ? nil : newText,
-            newNotes: self.notes
+            newNotes: self.notes,
+            newRecurrence: self.repeat_,
+            newRecurrenceInterval: self.repeatInterval,
+            newRecurrenceEnd: self.repeatUntil,
+            clearRecurrence: self.clearRepeat
         )
     }
 }

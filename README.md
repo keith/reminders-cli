@@ -72,6 +72,28 @@ $ reminders show Soon
 3: Something really important (priority: high)
 ```
 
+#### Add a repeating reminder
+
+```
+$ reminders add Soon Weekly review --due-date "monday 9am" --repeat weekly
+$ reminders add Soon Pay rent --due-date "2026-09-01" --repeat monthly --repeat-until "2027-09-01"
+$ reminders add Soon Water the plants --due-date "tomorrow" --repeat daily --repeat-interval 3
+```
+
+`--repeat` accepts `daily`, `weekly`, `monthly`, or `yearly` (EventKit reminders have no hourly
+recurrence frequency, so `--repeat hourly` is rejected with an explanation rather than silently
+degrading to daily). `--repeat-interval` repeats every N units instead of every 1 (e.g.
+`--repeat-interval 2 --repeat weekly` for every other week) and defaults to 1. `--repeat-until`
+stops the recurrence after a given date; omitting it repeats forever, matching the Reminders.app
+default. Both `--repeat-interval` and `--repeat-until` require `--repeat` to also be set.
+
+To change or remove a repeat rule on an existing reminder, use `edit`:
+
+```
+$ reminders edit Soon 0 --repeat monthly
+$ reminders edit Soon 0 --clear-repeat
+```
+
 #### Show reminders due on or by a date
 
 ```

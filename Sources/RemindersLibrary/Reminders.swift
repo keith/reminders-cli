@@ -16,13 +16,42 @@ private extension EKReminder {
     }
 }
 
+private func formattedRecurrence(from reminder: EKReminder) -> String? {
+    guard let rule = reminder.recurrenceRules?.first else { return nil }
+    switch rule.frequency {
+    case .daily:
+        if rule.interval == 1 {
+            return "daily"
+        }
+        return "every \(rule.interval) days"
+    case .weekly:
+        if rule.interval == 1 {
+            return "weekly"
+        }
+        return "every \(rule.interval) weeks"
+    case .monthly:
+        if rule.interval == 1 {
+            return "monthly"
+        }
+        return "every \(rule.interval) months"
+    case .yearly:
+        if rule.interval == 1 {
+            return "yearly"
+        }
+        return "every \(rule.interval) years"
+    @unknown default:
+        return "repeating"
+    }
+}
+
 private func format(_ reminder: EKReminder, at index: Int?, listName: String? = nil) -> String {
     let dateString = formattedDueDate(from: reminder).map { " (\($0))" } ?? ""
     let priorityString = Priority(reminder.mappedPriority).map { " (priority: \($0))" } ?? ""
+    let recurrenceString = formattedRecurrence(from: reminder).map { " (repeats: \($0))" } ?? ""
     let listString = listName.map { "\($0): " } ?? ""
     let notesString = reminder.notes.map { " (\($0))" } ?? ""
     let indexString = index.map { "\($0): " } ?? ""
-    return "\(listString)\(indexString)\(reminder.title ?? "<unknown>")\(notesString)\(dateString)\(priorityString)"
+    return "\(listString)\(indexString)\(reminder.title ?? "<unknown>")\(notesString)\(dateString)\(priorityString)\(recurrenceString)"
 }
 
 public enum OutputFormat: String, ExpressibleByArgument {
@@ -33,6 +62,30 @@ public enum DisplayOptions: String, Decodable {
     case all
     case incomplete
     case complete
+}
+
+public enum Recurrence: String, ExpressibleByArgument, CaseIterable {
+    case daily
+    case weekly
+    case monthly
+    case yearly
+
+    var frequency: EKRecurrenceFrequency {
+        switch self {
+            case .daily: return .daily
+            case .weekly: return .weekly
+            case .monthly: return .monthly
+            case .yearly: return .yearly
+        }
+    }
+
+    func toRecurrenceRule() -> EKRecurrenceRule {
+        return EKRecurrenceRule(
+            recurrenceWith: self.frequency,
+            interval: 1,
+            end: nil
+        )
+    }
 }
 
 public enum Priority: String, ExpressibleByArgument {
@@ -324,6 +377,7 @@ public final class Reminders {
         toListNamed name: String,
         dueDateComponents: DateComponents?,
         priority: Priority,
+        recurrence: Recurrence?,
         outputFormat: OutputFormat)
     {
         let calendar = self.calendar(withName: name)
@@ -336,6 +390,9 @@ public final class Reminders {
         if let dueDate = dueDateComponents?.date, dueDateComponents?.hour != nil {
             reminder.addAlarm(EKAlarm(absoluteDate: dueDate))
         }
+        if let recurrence = recurrence {
+            reminder.addRecurrenceRule(recurrence.toRecurrenceRule())
+        }
 
         do {
             try Store.save(reminder, commit: true)
@@ -343,7 +400,11 @@ public final class Reminders {
             case .json:
                 print(encodeToJson(data: reminder))
             default:
-                print("Added '\(reminder.title!)' to '\(calendar.title)'")
+                var message = "Added '\(reminder.title!)' to '\(calendar.title)'"
+                if let recurrence = recurrence {
+                    message += " (repeats: \(recurrence.rawValue))"
+                }
+                print(message)
             }
         } catch let error {
             print("Failed to save reminder with error: \(error)")

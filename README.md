@@ -72,6 +72,21 @@ $ reminders show Soon
 3: Something really important (priority: high)
 ```
 
+#### Add a recurring reminder
+
+```
+$ reminders add Soon Daily standup --due-date "tomorrow 9am" --repeat daily
+Added 'Daily standup' to 'Soon' (repeats: daily)
+$ reminders add Soon Weekly review --due-date "next friday 3pm" --repeat weekly
+Added 'Weekly review' to 'Soon' (repeats: weekly)
+$ reminders show Soon
+0: Ship reminders-cli
+1: Daily standup (in 10 hours) (repeats: daily)
+2: Weekly review (in 4 days) (repeats: weekly)
+```
+
+Supported values: `daily`, `weekly`, `monthly`, `yearly`
+
 #### Show reminders due on or by a date
 
 ```

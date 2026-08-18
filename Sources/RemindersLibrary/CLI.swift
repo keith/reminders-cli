@@ -242,14 +242,27 @@ private struct Edit: ParsableCommand {
         help: "The notes to set on the reminder, overwriting previous notes")
     var notes: String?
 
+    @Option(
+        name: .shortAndLong,
+        help: "The new date the reminder is due")
+    var dueDate: DateComponents?
+
+    @Flag(help: "Remove the due date from the reminder")
+    var clearDueDate = false
+
     @Argument(
         parsing: .remaining,
         help: "The new reminder contents")
     var reminder: [String] = []
 
     func validate() throws {
-        if self.reminder.isEmpty && self.notes == nil {
-            throw ValidationError("Must specify either new reminder content or new notes")
+        if self.dueDate != nil && self.clearDueDate {
+            throw ValidationError("Cannot specify both --due-date and --clear-due-date")
+        }
+
+        if self.reminder.isEmpty && self.notes == nil && self.dueDate == nil && !self.clearDueDate {
+            throw ValidationError(
+                "Must specify either new reminder content, new notes, or a due date change")
         }
     }
 
@@ -259,7 +272,9 @@ private struct Edit: ParsableCommand {
             itemAtIndex: self.index,
             onListNamed: self.listName,
             newText: newText.isEmpty ? nil : newText,
-            newNotes: self.notes
+            newNotes: self.notes,
+            newDueDateComponents: self.dueDate,
+            clearDueDate: self.clearDueDate
         )
     }
 }

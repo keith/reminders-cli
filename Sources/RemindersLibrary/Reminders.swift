@@ -4,10 +4,45 @@ import Foundation
 
 private let Store = EKEventStore()
 private let dateFormatter = RelativeDateTimeFormatter()
+private let recurrenceDateFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.calendar = Calendar(identifier: .gregorian)
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.timeZone = .current
+    formatter.dateFormat = "yyyy-MM-dd"
+    return formatter
+}()
+
 private func formattedDueDate(from reminder: EKReminder) -> String? {
     return reminder.dueDateComponents?.date.map {
         dateFormatter.localizedString(for: $0, relativeTo: Date())
     }
+}
+
+private func formattedRecurrence(from reminder: EKReminder) -> String? {
+    guard let rule = reminder.recurrenceRules?.first else {
+        return nil
+    }
+
+    let frequency: String
+    switch rule.frequency {
+    case .daily: frequency = "daily"
+    case .weekly: frequency = "weekly"
+    case .monthly: frequency = "monthly"
+    case .yearly: frequency = "yearly"
+    @unknown default: frequency = "unknown"
+    }
+
+    var parts = ["repeats: \(frequency)"]
+    if rule.interval > 1 {
+        parts.append("interval: \(rule.interval)")
+    }
+    if let endDate = rule.recurrenceEnd?.endDate {
+        parts.append("until: \(recurrenceDateFormatter.string(from: endDate))")
+    } else if let count = rule.recurrenceEnd?.occurrenceCount, count > 0 {
+        parts.append("count: \(count)")
+    }
+    return parts.joined(separator: ", ")
 }
 
 private extension EKReminder {
@@ -22,7 +57,8 @@ private func format(_ reminder: EKReminder, at index: Int?, listName: String? = 
     let listString = listName.map { "\($0): " } ?? ""
     let notesString = reminder.notes.map { " (\($0))" } ?? ""
     let indexString = index.map { "\($0): " } ?? ""
-    return "\(listString)\(indexString)\(reminder.title ?? "<unknown>")\(notesString)\(dateString)\(priorityString)"
+    let recurrenceString = formattedRecurrence(from: reminder).map { " (\($0))" } ?? ""
+    return "\(listString)\(indexString)\(reminder.title ?? "<unknown>")\(notesString)\(dateString)\(priorityString)\(recurrenceString)"
 }
 
 public enum OutputFormat: String, ExpressibleByArgument {
@@ -66,13 +102,155 @@ public enum Recurrence: String, ExpressibleByArgument {
         self != .hourly
     }
 
-    func recurrenceRule(interval: Int, until: Date?) -> EKRecurrenceRule {
-        let end = until.map { EKRecurrenceEnd(end: $0) }
+    func recurrenceRule(interval: Int, end: EKRecurrenceEnd?) -> EKRecurrenceRule {
         return EKRecurrenceRule(
             recurrenceWith: self.frequency,
             interval: interval,
             end: end)
     }
+}
+
+enum RecurrenceEndUpdate {
+    case unchanged
+    case date(Date)
+    case clear
+
+    func applying(to existingEnd: EKRecurrenceEnd?) -> EKRecurrenceEnd? {
+        switch self {
+        case .unchanged:
+            return existingEnd
+        case .date(let date):
+            return EKRecurrenceEnd(end: date)
+        case .clear:
+            return nil
+        }
+    }
+}
+
+enum RecurrenceUpdateError: LocalizedError {
+    case invalidEndDate
+    case missingExistingRule
+    case missingDueDate
+    case endBeforeDueDate
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidEndDate:
+            return "The repeat end date could not be parsed"
+        case .missingExistingRule:
+            return "A repeat rule is required; pass --repeat or edit a repeating reminder"
+        case .missingDueDate:
+            return "A repeating reminder requires a due date"
+        case .endBeforeDueDate:
+            return "The repeat end date cannot be earlier than the reminder's due date"
+        }
+    }
+}
+
+struct RecurrenceUpdate {
+    let recurrence: Recurrence?
+    let interval: Int?
+    let end: RecurrenceEndUpdate
+
+    var isRequested: Bool {
+        if recurrence != nil || interval != nil {
+            return true
+        }
+        if case .unchanged = end {
+            return false
+        }
+        return true
+    }
+
+    func rule(replacing existingRule: EKRecurrenceRule?) throws -> EKRecurrenceRule {
+        guard let frequency = recurrence?.frequency ?? existingRule?.frequency else {
+            throw RecurrenceUpdateError.missingExistingRule
+        }
+
+        let resolvedInterval = interval ?? existingRule?.interval ?? 1
+        let resolvedEnd = end.applying(to: existingRule?.recurrenceEnd)
+
+        // An end-only or interval-only edit must preserve every selector in a
+        // complex rule (for example, "the last Friday of every month"). The
+        // same applies when the explicitly supplied frequency is unchanged.
+        if let existingRule,
+            recurrence == nil || existingRule.frequency == frequency
+        {
+            return EKRecurrenceRule(
+                recurrenceWith: frequency,
+                interval: resolvedInterval,
+                daysOfTheWeek: existingRule.daysOfTheWeek,
+                daysOfTheMonth: existingRule.daysOfTheMonth,
+                monthsOfTheYear: existingRule.monthsOfTheYear,
+                weeksOfTheYear: existingRule.weeksOfTheYear,
+                daysOfTheYear: existingRule.daysOfTheYear,
+                setPositions: existingRule.setPositions,
+                end: resolvedEnd)
+        }
+
+        return EKRecurrenceRule(
+            recurrenceWith: frequency,
+            interval: resolvedInterval,
+            end: resolvedEnd)
+    }
+}
+
+func recurrenceEndDate(from components: DateComponents) -> Date? {
+    var calendar = components.calendar ?? Calendar.current
+    if let timeZone = components.timeZone {
+        calendar.timeZone = timeZone
+    }
+
+    guard let date = calendar.date(from: components) else {
+        return nil
+    }
+
+    // A date-only value means the whole local day. Using midnight would make
+    // a morning or evening occurrence on the requested final day disappear.
+    guard components.hour == nil && components.minute == nil && components.second == nil else {
+        return date
+    }
+    guard let nextDay = calendar.date(byAdding: .day, value: 1, to: date) else {
+        return nil
+    }
+    return nextDay.addingTimeInterval(-1)
+}
+
+private func recurrenceEnd(dateComponents: DateComponents?) throws -> EKRecurrenceEnd? {
+    guard let dateComponents else {
+        return nil
+    }
+    guard let date = recurrenceEndDate(from: dateComponents) else {
+        throw RecurrenceUpdateError.invalidEndDate
+    }
+    return EKRecurrenceEnd(end: date)
+}
+
+func validateRecurrenceEnd(
+    dueDateComponents: DateComponents?,
+    rules: [EKRecurrenceRule]
+) throws {
+    guard let dueDate = dueDateComponents?.date else {
+        return
+    }
+    if rules.contains(where: { rule in
+        guard let endDate = rule.recurrenceEnd?.endDate else {
+            return false
+        }
+        return endDate < dueDate
+    }) {
+        throw RecurrenceUpdateError.endBeforeDueDate
+    }
+}
+
+func validateRecurrenceSchedule(
+    dueDateComponents: DateComponents?,
+    rules: [EKRecurrenceRule]
+) throws {
+    if !rules.isEmpty && dueDateComponents == nil {
+        throw RecurrenceUpdateError.missingDueDate
+    }
+    try validateRecurrenceEnd(dueDateComponents: dueDateComponents, rules: rules)
 }
 
 public enum Priority: String, ExpressibleByArgument {
@@ -265,7 +443,7 @@ public final class Reminders {
             try store.saveCalendar(newList, commit: true)
             print("Created new list '\(newList.title)'!")
         } catch let error {
-            print("Failed create new list with error: \(error)")
+            print("Failed create new list with error: \(error.localizedDescription)")
             exit(1)
         }
     }
@@ -277,7 +455,9 @@ public final class Reminders {
         newNotes: String?,
         newDueDateComponents: DateComponents? = nil,
         clearDueDate: Bool = false,
-        newRecurrence: Recurrence?, newRecurrenceInterval: Int, newRecurrenceEnd: DateComponents?,
+        newRecurrence: Recurrence?, newRecurrenceInterval: Int?,
+        newRecurrenceEndDate: DateComponents?,
+        clearRecurrenceEnd: Bool,
         clearRecurrence: Bool)
     {
         let calendar = self.calendar(withName: name)
@@ -313,18 +493,52 @@ public final class Reminders {
                     for rule in reminder.recurrenceRules ?? [] {
                         reminder.removeRecurrenceRule(rule)
                     }
-                } else if let newRecurrence = newRecurrence {
-                    for rule in reminder.recurrenceRules ?? [] {
-                        reminder.removeRecurrenceRule(rule)
+                } else {
+                    let endUpdate: RecurrenceEndUpdate
+                    if clearRecurrenceEnd {
+                        endUpdate = .clear
+                    } else if let newRecurrenceEndDate {
+                        guard let date = recurrenceEndDate(from: newRecurrenceEndDate) else {
+                            throw RecurrenceUpdateError.invalidEndDate
+                        }
+                        endUpdate = .date(date)
+                    } else {
+                        endUpdate = .unchanged
                     }
-                    let rule = newRecurrence.recurrenceRule(
-                        interval: newRecurrenceInterval, until: newRecurrenceEnd?.date)
-                    reminder.addRecurrenceRule(rule)
+
+                    let update = RecurrenceUpdate(
+                        recurrence: newRecurrence,
+                        interval: newRecurrenceInterval,
+                        end: endUpdate)
+                    if update.isRequested {
+                        let existingRules = reminder.recurrenceRules ?? []
+                        let replacements: [EKRecurrenceRule]
+                        if newRecurrence == nil {
+                            guard !existingRules.isEmpty else {
+                                throw RecurrenceUpdateError.missingExistingRule
+                            }
+                            replacements = try existingRules.map {
+                                try update.rule(replacing: $0)
+                            }
+                        } else {
+                            replacements = [try update.rule(replacing: existingRules.first)]
+                        }
+
+                        for rule in existingRules {
+                            reminder.removeRecurrenceRule(rule)
+                        }
+                        for replacement in replacements {
+                            reminder.addRecurrenceRule(replacement)
+                        }
+                    }
                 }
+                try validateRecurrenceSchedule(
+                    dueDateComponents: reminder.dueDateComponents,
+                    rules: reminder.recurrenceRules ?? [])
                 try Store.save(reminder, commit: true)
                 print("Updated reminder '\(reminder.title!)'")
             } catch let error {
-                print("Failed to update reminder with error: \(error)")
+                print("Failed to update reminder with error: \(error.localizedDescription)")
                 exit(1)
             }
 
@@ -352,7 +566,7 @@ public final class Reminders {
                 try Store.save(reminder, commit: true)
                 print("\(action) '\(reminder.title!)'")
             } catch let error {
-                print("Failed to save reminder with error: \(error)")
+                print("Failed to save reminder with error: \(error.localizedDescription)")
                 exit(1)
             }
 
@@ -386,7 +600,7 @@ public final class Reminders {
                 try Store.remove(reminder, commit: true)
                 print("Deleted '\(reminder.title!)'")
             } catch let error {
-                print("Failed to delete reminder with error: \(error)")
+                print("Failed to delete reminder with error: \(error.localizedDescription)")
                 exit(1)
             }
 
@@ -404,7 +618,7 @@ public final class Reminders {
         priority: Priority,
         recurrence: Recurrence?,
         recurrenceInterval: Int,
-        recurrenceEnd: DateComponents?,
+        recurrenceEndDate: DateComponents?,
         outputFormat: OutputFormat)
     {
         let calendar = self.calendar(withName: name)
@@ -417,13 +631,20 @@ public final class Reminders {
         if let dueDate = dueDateComponents?.date, dueDateComponents?.hour != nil {
             reminder.addAlarm(EKAlarm(absoluteDate: dueDate))
         }
-        if let recurrence = recurrence {
-            let rule = recurrence.recurrenceRule(
-                interval: recurrenceInterval, until: recurrenceEnd?.date)
-            reminder.addRecurrenceRule(rule)
-        }
-
         do {
+            if let recurrence = recurrence {
+                guard dueDateComponents != nil else {
+                    throw RecurrenceUpdateError.missingDueDate
+                }
+                let end = try recurrenceEnd(dateComponents: recurrenceEndDate)
+                reminder.addRecurrenceRule(
+                    recurrence.recurrenceRule(interval: recurrenceInterval, end: end))
+            }
+
+            try validateRecurrenceSchedule(
+                dueDateComponents: reminder.dueDateComponents,
+                rules: reminder.recurrenceRules ?? [])
+
             try Store.save(reminder, commit: true)
             switch (outputFormat) {
             case .json:
@@ -432,7 +653,7 @@ public final class Reminders {
                 print("Added '\(reminder.title!)' to '\(calendar.title)'")
             }
         } catch let error {
-            print("Failed to save reminder with error: \(error)")
+            print("Failed to save reminder with error: \(error.localizedDescription)")
             exit(1)
         }
     }

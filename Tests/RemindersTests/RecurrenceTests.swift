@@ -62,11 +62,23 @@ final class RecurrenceTests: XCTestCase {
         ).rule(replacing: existing)
 
         XCTAssertEqual(result.frequency, .weekly)
-        XCTAssertEqual(result.interval, 2)
+        XCTAssertEqual(result.interval, 1)
         XCTAssertEqual(
             result.recurrenceEnd?.endDate?.timeIntervalSince1970 ?? 0,
             end.timeIntervalSince1970,
             accuracy: 1.0)
+    }
+
+    func testChangingFrequencyUsesExplicitInterval() throws {
+        let existing = Recurrence.daily.recurrenceRule(interval: 2, end: nil)
+        let result = try RecurrenceUpdate(
+            recurrence: .monthly,
+            interval: 3,
+            end: .unchanged
+        ).rule(replacing: existing)
+
+        XCTAssertEqual(result.frequency, .monthly)
+        XCTAssertEqual(result.interval, 3)
     }
 
     func testEndOnlyUpdatePreservesComplexSelectors() throws {
@@ -92,6 +104,10 @@ final class RecurrenceTests: XCTestCase {
         XCTAssertEqual(result.daysOfTheWeek?.first?.dayOfTheWeek, .friday)
         XCTAssertEqual(result.daysOfTheWeek?.first?.weekNumber, -1)
         XCTAssertEqual(result.setPositions?.first?.intValue, -1)
+        XCTAssertFalse(result === existing)
+        XCTAssertEqual(result.calendarIdentifier, existing.calendarIdentifier)
+        XCTAssertEqual(result.firstDayOfTheWeek, existing.firstDayOfTheWeek)
+        XCTAssertNil(existing.recurrenceEnd)
         XCTAssertEqual(
             result.recurrenceEnd?.endDate?.timeIntervalSince1970 ?? 0,
             end.timeIntervalSince1970,

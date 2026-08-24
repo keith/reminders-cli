@@ -103,7 +103,8 @@ $ reminders edit Soon 0 --clear-repeat
 
 Changing only the interval or end condition preserves the existing frequency and any complex
 selectors, such as "the last Friday of every month". Changing the frequency preserves the existing
-end condition unless a new `--repeat-until` or `--clear-repeat-end` is supplied.
+end condition but resets its interval to 1 unless `--repeat-interval` is supplied. An end-only edit
+copies the complete EventKit rule so provider-specific calendar metadata is preserved as well.
 JSON output includes `recurrence`, `recurrenceInterval`, and either `recurrenceEnd` or
 `recurrenceCount` (when an existing rule is count-based) for repeating reminders.
 

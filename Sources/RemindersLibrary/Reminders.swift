@@ -132,6 +132,7 @@ enum RecurrenceUpdateError: LocalizedError {
     case missingExistingRule
     case missingDueDate
     case endBeforeDueDate
+    case failedToCopyExistingRule
 
     var errorDescription: String? {
         switch self {
@@ -143,6 +144,8 @@ enum RecurrenceUpdateError: LocalizedError {
             return "A repeating reminder requires a due date"
         case .endBeforeDueDate:
             return "The repeat end date cannot be earlier than the reminder's due date"
+        case .failedToCopyExistingRule:
+            return "The existing repeat rule could not be copied safely"
         }
     }
 }
@@ -167,12 +170,26 @@ struct RecurrenceUpdate {
             throw RecurrenceUpdateError.missingExistingRule
         }
 
-        let resolvedInterval = interval ?? existingRule?.interval ?? 1
+        let shouldPreserveInterval = recurrence == nil || existingRule?.frequency == frequency
+        let inheritedInterval = shouldPreserveInterval ? existingRule?.interval : nil
+        let resolvedInterval = interval ?? inheritedInterval ?? 1
         let resolvedEnd = end.applying(to: existingRule?.recurrenceEnd)
 
-        // An end-only or interval-only edit must preserve every selector in a
-        // complex rule (for example, "the last Friday of every month"). The
-        // same applies when the explicitly supplied frequency is unchanged.
+        // Changing only the end condition can preserve more than the public
+        // initializer exposes, including provider-specific calendar metadata
+        // and firstDayOfTheWeek. Copy the complete EventKit rule and modify its
+        // sole writable recurrence property rather than reconstructing it.
+        if let existingRule, recurrence == nil, interval == nil {
+            guard let copiedRule = existingRule.copy() as? EKRecurrenceRule else {
+                throw RecurrenceUpdateError.failedToCopyExistingRule
+            }
+            copiedRule.recurrenceEnd = resolvedEnd
+            return copiedRule
+        }
+
+        // An interval edit must preserve every public selector in a complex
+        // rule (for example, "the last Friday of every month"). The same
+        // applies when the explicitly supplied frequency is unchanged.
         if let existingRule,
             recurrence == nil || existingRule.frequency == frequency
         {
@@ -443,7 +460,7 @@ public final class Reminders {
             try store.saveCalendar(newList, commit: true)
             print("Created new list '\(newList.title)'!")
         } catch let error {
-            print("Failed create new list with error: \(error.localizedDescription)")
+            print("Failed create new list with error: \(error)")
             exit(1)
         }
     }
@@ -462,6 +479,10 @@ public final class Reminders {
     {
         let calendar = self.calendar(withName: name)
         let semaphore = DispatchSemaphore(value: 0)
+        let dueDateChangeRequested = clearDueDate || newDueDateComponents != nil
+        let recurrenceChangeRequested = clearRecurrence || newRecurrence != nil
+            || newRecurrenceInterval != nil || newRecurrenceEndDate != nil
+            || clearRecurrenceEnd
 
         self.reminders(on: [calendar], displayOptions: .incomplete) { reminders in
             guard let reminder = self.getReminder(from: reminders, at: index) else {
@@ -532,9 +553,11 @@ public final class Reminders {
                         }
                     }
                 }
-                try validateRecurrenceSchedule(
-                    dueDateComponents: reminder.dueDateComponents,
-                    rules: reminder.recurrenceRules ?? [])
+                if dueDateChangeRequested || recurrenceChangeRequested {
+                    try validateRecurrenceSchedule(
+                        dueDateComponents: reminder.dueDateComponents,
+                        rules: reminder.recurrenceRules ?? [])
+                }
                 try Store.save(reminder, commit: true)
                 print("Updated reminder '\(reminder.title!)'")
             } catch let error {
@@ -566,7 +589,7 @@ public final class Reminders {
                 try Store.save(reminder, commit: true)
                 print("\(action) '\(reminder.title!)'")
             } catch let error {
-                print("Failed to save reminder with error: \(error.localizedDescription)")
+                print("Failed to save reminder with error: \(error)")
                 exit(1)
             }
 
@@ -600,7 +623,7 @@ public final class Reminders {
                 try Store.remove(reminder, commit: true)
                 print("Deleted '\(reminder.title!)'")
             } catch let error {
-                print("Failed to delete reminder with error: \(error.localizedDescription)")
+                print("Failed to delete reminder with error: \(error)")
                 exit(1)
             }
 

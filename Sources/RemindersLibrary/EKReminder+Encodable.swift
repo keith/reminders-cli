@@ -16,6 +16,10 @@ extension EKReminder: @retroactive Encodable {
         case startDate
         case dueDate
         case list
+        case recurrence
+        case recurrenceInterval
+        case recurrenceEnd
+        case recurrenceCount
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -57,6 +61,25 @@ extension EKReminder: @retroactive Encodable {
         
         if let creationDate = self.creationDate {
             try container.encode(format(creationDate), forKey: .creationDate)
+        }
+
+        if let rule = self.recurrenceRules?.first {
+            try container.encodeIfPresent(recurrenceName(for: rule.frequency), forKey: .recurrence)
+            try container.encode(rule.interval, forKey: .recurrenceInterval)
+            try container.encodeIfPresent(format(rule.recurrenceEnd?.endDate), forKey: .recurrenceEnd)
+            if let count = rule.recurrenceEnd?.occurrenceCount, count > 0 {
+                try container.encode(count, forKey: .recurrenceCount)
+            }
+        }
+    }
+
+    private func recurrenceName(for frequency: EKRecurrenceFrequency) -> String? {
+        switch frequency {
+        case .daily: return "daily"
+        case .weekly: return "weekly"
+        case .monthly: return "monthly"
+        case .yearly: return "yearly"
+        @unknown default: return nil
         }
     }
     

@@ -153,6 +153,46 @@ private struct Add: ParsableCommand {
         help: "The notes to add to the reminder")
     var notes: String?
 
+    @Option(
+        name: [.customLong("repeat")],
+        help: "Repeat the reminder, one of: daily, weekly, monthly, yearly")
+    var repeat_: Recurrence?
+
+    @Option(
+        name: .long,
+        help: "Repeat every N units of --repeat's frequency instead of every 1 (default: 1)")
+    var repeatInterval: Int?
+
+    @Option(
+        name: .long,
+        help: "Stop repeating after this date (default: repeats forever)")
+    var repeatUntil: DateComponents?
+
+    func validate() throws {
+        if let repeat_ = repeat_, !repeat_.isRepresentable {
+            throw ValidationError(
+                "--repeat \(repeat_.rawValue) is not supported: EventKit reminders have no hourly "
+                    + "recurrence frequency (Reminders.app itself doesn't expose this either). Use "
+                    + "daily, weekly, monthly, or yearly.")
+        }
+        if repeat_ != nil && dueDate == nil {
+            throw ValidationError("--repeat requires --due-date")
+        }
+        if let repeatUntil, let dueDate,
+            let endDate = recurrenceEndDate(from: repeatUntil),
+            let due = dueDate.date, endDate < due
+        {
+            throw ValidationError("--repeat-until cannot be earlier than --due-date")
+        }
+        if let repeatInterval, repeatInterval < 1 {
+            throw ValidationError("--repeat-interval must be at least 1")
+        }
+        if repeat_ == nil && (repeatInterval != nil || repeatUntil != nil) {
+            throw ValidationError(
+                "--repeat-interval and --repeat-until require --repeat")
+        }
+    }
+
     func run() {
         reminders.addReminder(
             string: self.reminder.joined(separator: " "),
@@ -160,6 +200,9 @@ private struct Add: ParsableCommand {
             toListNamed: self.listName,
             dueDateComponents: self.dueDate,
             priority: priority,
+            recurrence: self.repeat_,
+            recurrenceInterval: self.repeatInterval ?? 1,
+            recurrenceEndDate: self.repeatUntil,
             outputFormat: format)
     }
 }
@@ -243,6 +286,31 @@ private struct Edit: ParsableCommand {
     var notes: String?
 
     @Option(
+        name: [.customLong("repeat")],
+        help: "Set (or replace) the reminder's repeat, one of: daily, weekly, monthly, yearly")
+    var repeat_: Recurrence?
+
+    @Option(
+        name: .long,
+        help: "Repeat every N units of the recurrence frequency")
+    var repeatInterval: Int?
+
+    @Option(
+        name: .long,
+        help: "Stop repeating after this date; preserves the existing repeat frequency")
+    var repeatUntil: DateComponents?
+
+    @Flag(
+        name: .long,
+        help: "Remove any repeat rule from the reminder")
+    var clearRepeat = false
+
+    @Flag(
+        name: .long,
+        help: "Keep repeating forever without changing the recurrence frequency")
+    var clearRepeatEnd = false
+
+    @Option(
         name: .shortAndLong,
         help: "The new date the reminder is due")
     var dueDate: DateComponents?
@@ -260,9 +328,32 @@ private struct Edit: ParsableCommand {
             throw ValidationError("Cannot specify both --due-date and --clear-due-date")
         }
 
-        if self.reminder.isEmpty && self.notes == nil && self.dueDate == nil && !self.clearDueDate {
+        let changesRecurrence = self.repeat_ != nil || self.repeatInterval != nil
+            || self.repeatUntil != nil || self.clearRepeatEnd
+
+        if self.reminder.isEmpty && self.notes == nil && self.dueDate == nil
+            && !self.clearDueDate && !changesRecurrence && !self.clearRepeat
+        {
             throw ValidationError(
-                "Must specify either new reminder content, new notes, or a due date change")
+                "Must specify new reminder content, new notes, a due date change, or a repeat change")
+        }
+        if self.clearRepeat && changesRecurrence {
+            throw ValidationError("Cannot combine --clear-repeat with another repeat option")
+        }
+        if let repeat_ = repeat_, !repeat_.isRepresentable {
+            throw ValidationError(
+                "--repeat \(repeat_.rawValue) is not supported: EventKit reminders have no hourly "
+                    + "recurrence frequency (Reminders.app itself doesn't expose this either). Use "
+                    + "daily, weekly, monthly, or yearly.")
+        }
+        if let repeatInterval, repeatInterval < 1 {
+            throw ValidationError("--repeat-interval must be at least 1")
+        }
+        let endOptionCount = [repeatUntil != nil, clearRepeatEnd]
+            .filter { $0 }.count
+        if endOptionCount > 1 {
+            throw ValidationError(
+                "Specify only one of --repeat-until or --clear-repeat-end")
         }
     }
 
@@ -274,7 +365,12 @@ private struct Edit: ParsableCommand {
             newText: newText.isEmpty ? nil : newText,
             newNotes: self.notes,
             newDueDateComponents: self.dueDate,
-            clearDueDate: self.clearDueDate
+            clearDueDate: self.clearDueDate,
+            newRecurrence: self.repeat_,
+            newRecurrenceInterval: self.repeatInterval,
+            newRecurrenceEndDate: self.repeatUntil,
+            clearRecurrenceEnd: self.clearRepeatEnd,
+            clearRecurrence: self.clearRepeat
         )
     }
 }

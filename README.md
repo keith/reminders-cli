@@ -76,6 +76,38 @@ $ reminders show Soon
 3: Something really important (priority: high)
 ```
 
+#### Add a repeating reminder
+
+```
+$ reminders add Soon Weekly review --due-date "monday 9am" --repeat weekly
+$ reminders add Soon Pay rent --due-date "2026-09-01" --repeat monthly --repeat-until "2027-09-01"
+$ reminders add Soon Water the plants --due-date "tomorrow" --repeat daily --repeat-interval 3
+```
+
+`--repeat` accepts `daily`, `weekly`, `monthly`, or `yearly` (EventKit reminders have no hourly
+recurrence frequency, so `--repeat hourly` is rejected with an explanation rather than silently
+degrading to daily). `--repeat-interval` repeats every N units instead of every 1 (e.g.
+`--repeat-interval 2 --repeat weekly` for every other week) and defaults to 1. Use
+`--repeat-until` to stop after a date; omitting it repeats forever, matching the Reminders.app
+default. A date without a time includes the whole local day. On `add`, recurrence options require
+`--repeat` to also be set, and a repeating reminder requires `--due-date`.
+
+To change or remove a repeat rule on an existing reminder, use `edit`:
+
+```
+$ reminders edit Soon 0 --repeat monthly
+$ reminders edit Soon 0 --repeat-until "2027-09-01"
+$ reminders edit Soon 0 --clear-repeat-end
+$ reminders edit Soon 0 --clear-repeat
+```
+
+Changing only the interval or end condition preserves the existing frequency and any complex
+selectors, such as "the last Friday of every month". Changing the frequency preserves the existing
+end condition but resets its interval to 1 unless `--repeat-interval` is supplied. An end-only edit
+copies the complete EventKit rule so provider-specific calendar metadata is preserved as well.
+JSON output includes `recurrence`, `recurrenceInterval`, and either `recurrenceEnd` or
+`recurrenceCount` (when an existing rule is count-based) for repeating reminders.
+
 #### Show reminders due on or by a date
 
 ```

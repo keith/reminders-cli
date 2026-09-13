@@ -5,7 +5,7 @@ ARCHIVE=$(EXECUTABLE).tar.gz
 .PHONY: clean build-release package
 
 build-release:
-	swift build --configuration release -Xswiftc -warnings-as-errors --arch arm64 --arch x86_64
+	swift build --configuration release --arch arm64 --arch x86_64
 
 package: build-release
 	$(RELEASE_BUILD)/$(EXECUTABLE) --generate-completion-script zsh > _reminders

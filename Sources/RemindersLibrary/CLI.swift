@@ -218,7 +218,7 @@ private struct Delete: ParsableCommand {
     }
 }
 
-func listNameCompletion(_ arguments: [String]) -> [String] {
+func listNameCompletion(_ arguments: [String], _ position: Int, _ prefix: String) -> [String] {
     // NOTE: A list name with ':' was separated in zsh completion, there might be more of these or
     // this might break other shells
     return reminders.getListNames().map { $0.replacingOccurrences(of: ":", with: "\\:") }

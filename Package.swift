@@ -10,18 +10,20 @@ let package = Package(
         .executable(name: "reminders", targets: ["reminders"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-argument-parser", .upToNextMinor(from: "1.3.1")),
+        .package(url: "https://github.com/apple/swift-argument-parser", .upToNextMajor(from: "1.3.1")),
     ],
     targets: [
         .executableTarget(
             name: "reminders",
-            dependencies: ["RemindersLibrary"]
+            dependencies: ["RemindersLibrary"],
+            swiftSettings: [.unsafeFlags(["-warnings-as-errors"])]
         ),
         .target(
             name: "RemindersLibrary",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-            ]
+            ],
+            swiftSettings: [.unsafeFlags(["-warnings-as-errors"])]
         ),
         .testTarget(
             name: "RemindersTests",

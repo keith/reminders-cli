@@ -35,13 +35,10 @@ private func components(from string: String) -> DateComponents? {
         print("warning: timeIsSignificant is not available, please report this to keith/reminders-cli")
     }
 
-    let timeZone = match.timeZone ?? .current
-    let parsedComponents = calendar.dateComponents(in: timeZone, from: date)
-    if includeTime {
-        return parsedComponents
-    } else {
-        return calendar.dateComponents(calendarComponents(except: timeComponents), from: date)
-    }
+    var zonedCalendar = calendar
+    zonedCalendar.timeZone = match.timeZone ?? calendar.timeZone
+    let wantedComponents = includeTime ? calendarComponents() : calendarComponents(except: timeComponents)
+    return zonedCalendar.dateComponents(wantedComponents, from: date)
 }
 
 extension DateComponents: @retroactive ExpressibleByArgument {

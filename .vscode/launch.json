@@ -1,0 +1,24 @@
+{
+  "configurations": [
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:reminders-cli}",
+      "name": "Debug reminders",
+      "target": "reminders",
+      "configuration": "debug",
+      "preLaunchTask": "swift: Build Debug reminders"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:reminders-cli}",
+      "name": "Release reminders",
+      "target": "reminders",
+      "configuration": "release",
+      "preLaunchTask": "swift: Build Release reminders"
+    }
+  ]
+}

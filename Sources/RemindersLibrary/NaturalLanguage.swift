@@ -1,7 +1,7 @@
 import ArgumentParser
 import Foundation
 
-private let calendar = Calendar.current
+private let calendar = Calendar(identifier: .gregorian)
 private let allComponents: Set<Calendar.Component> = [
     .era, .year, .yearForWeekOfYear, .quarter, .month,
     .weekOfYear, .weekOfMonth, .weekday, .weekdayOrdinal, .day,

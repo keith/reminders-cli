@@ -64,6 +64,19 @@ extension EKReminder: @retroactive Encodable {
         if let creationDate = self.creationDate {
             try container.encode(format(creationDate), forKey: .creationDate)
         }
+
+        if let rule = self.recurrenceRules?.first {
+            let frequencyName: String
+            switch rule.frequency {
+            case .daily: frequencyName = "daily"
+            case .weekly: frequencyName = "weekly"
+            case .monthly: frequencyName = "monthly"
+            case .yearly: frequencyName = "yearly"
+            @unknown default: frequencyName = "unknown"
+            }
+            let recurrenceValue = rule.interval == 1 ? frequencyName : "every \(rule.interval) \(frequencyName)"
+            try container.encode(recurrenceValue, forKey: .recurrence)
+        }
     }
     
     private func format(_ date: Date?) -> String? {

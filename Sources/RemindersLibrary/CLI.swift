@@ -153,6 +153,35 @@ private struct Add: ParsableCommand {
         help: "The notes to add to the reminder")
     var notes: String?
 
+    @Option(
+        name: [.customLong("repeat")],
+        help: ArgumentHelp(
+            "Repeat the reminder: daily, weekly, monthly or yearly. Requires --due-date.",
+            valueName: "frequency"))
+    var repeat_: Recurrence?
+
+    @Option(
+        name: .long,
+        help: ArgumentHelp(
+            "With --repeat, repeat every N units instead of every 1.",
+            valueName: "n"))
+    var repeatInterval: Int = 1
+
+    @Option(
+        name: .long,
+        help: ArgumentHelp(
+            "With --repeat, stop repeating after this date (inclusive). Default: repeat forever.",
+            valueName: "date"))
+    var repeatUntil: DateComponents?
+
+    func validate() throws {
+        try validateRepeatOptions(
+            repeat_: repeat_, interval: repeatInterval, until: repeatUntil)
+        if repeat_ != nil && dueDate == nil {
+            throw ValidationError("--repeat requires a due date (--due-date)")
+        }
+    }
+
     func run() {
         reminders.addReminder(
             string: self.reminder.joined(separator: " "),
@@ -160,6 +189,9 @@ private struct Add: ParsableCommand {
             toListNamed: self.listName,
             dueDateComponents: self.dueDate,
             priority: priority,
+            recurrence: self.repeat_,
+            recurrenceInterval: self.repeatInterval,
+            recurrenceEnd: self.repeatUntil,
             outputFormat: format)
     }
 }
@@ -250,6 +282,32 @@ private struct Edit: ParsableCommand {
     @Flag(help: "Remove the due date from the reminder")
     var clearDueDate = false
 
+    @Option(
+        name: [.customLong("repeat")],
+        help: ArgumentHelp(
+            "Set or replace the repeat rule: daily, weekly, monthly or yearly. Requires a due date.",
+            valueName: "frequency"))
+    var repeat_: Recurrence?
+
+    @Option(
+        name: .long,
+        help: ArgumentHelp(
+            "With --repeat, repeat every N units instead of every 1.",
+            valueName: "n"))
+    var repeatInterval: Int = 1
+
+    @Option(
+        name: .long,
+        help: ArgumentHelp(
+            "With --repeat, stop repeating after this date (inclusive). Default: repeat forever.",
+            valueName: "date"))
+    var repeatUntil: DateComponents?
+
+    @Flag(
+        name: .long,
+        help: "Remove any repeat rule from the reminder")
+    var clearRepeat = false
+
     @Argument(
         parsing: .remaining,
         help: "The new reminder contents")
@@ -259,11 +317,20 @@ private struct Edit: ParsableCommand {
         if self.dueDate != nil && self.clearDueDate {
             throw ValidationError("Cannot specify both --due-date and --clear-due-date")
         }
-
-        if self.reminder.isEmpty && self.notes == nil && self.dueDate == nil && !self.clearDueDate {
-            throw ValidationError(
-                "Must specify either new reminder content, new notes, or a due date change")
+        if self.clearRepeat && self.repeat_ != nil {
+            throw ValidationError("Cannot specify both --repeat and --clear-repeat")
         }
+        if self.repeat_ != nil && self.clearDueDate {
+            throw ValidationError("Cannot specify both --repeat and --clear-due-date: a repeating reminder needs a due date")
+        }
+        if self.reminder.isEmpty && self.notes == nil && self.dueDate == nil && !self.clearDueDate
+            && self.repeat_ == nil && !self.clearRepeat
+        {
+            throw ValidationError(
+                "Must specify new reminder content, new notes, a due date change, --repeat, or --clear-repeat")
+        }
+        try validateRepeatOptions(
+            repeat_: repeat_, interval: repeatInterval, until: repeatUntil)
     }
 
     func run() {
@@ -274,7 +341,11 @@ private struct Edit: ParsableCommand {
             newText: newText.isEmpty ? nil : newText,
             newNotes: self.notes,
             newDueDateComponents: self.dueDate,
-            clearDueDate: self.clearDueDate
+            clearDueDate: self.clearDueDate,
+            newRecurrence: self.repeat_,
+            newRecurrenceInterval: self.repeatInterval,
+            newRecurrenceEnd: self.repeatUntil,
+            clearRecurrence: self.clearRepeat
         )
     }
 }

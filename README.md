@@ -49,6 +49,8 @@ $ reminders edit Soon 0 --due-date "tomorrow 9am"
 Updated reminder 'Some edited text'
 $ reminders edit Soon 0 --clear-due-date
 Updated reminder 'Some edited text'
+$ reminders edit Soon 0 --priority high
+Updated reminder 'Some edited text'
 $ reminders show Soon
 0 Ship reminders-cli
 1 Some edited text
